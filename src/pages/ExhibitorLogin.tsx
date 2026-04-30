@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { isExhibitorAuthenticated, setExhibitorSession } from "@/lib/exhibitorAuth";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { sha256Hash } from "@/lib/crypto";
 
 const ExhibitorLogin = () => {
@@ -22,23 +23,31 @@ const ExhibitorLogin = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (!isSupabaseConfigured || !supabase) {
-      toast.error("Supabase is not configured");
+    if (!isFirebaseConfigured || !db) {
+      toast.error("Firebase is not configured");
       setIsSubmitting(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from("exhibitors")
-      .select("id, booth_name, company_name, contact_name, email, password_hash")
-      .eq("email", email.trim().toLowerCase())
-      .maybeSingle();
+    const normalizedEmail = email.trim().toLowerCase();
+    const snapshot = await getDocs(
+      query(collection(db, "exhibitors"), where("email", "==", normalizedEmail), limit(1)),
+    );
 
-    if (error || !data) {
+    if (snapshot.empty) {
       toast.error("Invalid login", { description: "Exhibitor account not found." });
       setIsSubmitting(false);
       return;
     }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data() as {
+      booth_name?: string;
+      company_name?: string;
+      contact_name?: string;
+      email?: string;
+      password_hash?: string;
+    };
 
     const enteredHash = await sha256Hash(password);
     const valid = enteredHash === data.password_hash;
@@ -49,14 +58,14 @@ const ExhibitorLogin = () => {
     }
 
     setExhibitorSession({
-      id: data.id,
-      booth_name: data.booth_name,
-      company_name: data.company_name,
-      contact_name: data.contact_name,
-      email: data.email,
+      id: doc.id,
+      booth_name: data.booth_name || "",
+      company_name: data.company_name || "",
+      contact_name: data.contact_name || "",
+      email: data.email || normalizedEmail,
     });
 
-    toast.success("Welcome back", { description: `Logged in as ${data.booth_name}` });
+    toast.success("Welcome back", { description: `Logged in as ${data.booth_name || "your booth"}` });
     navigate("/exhibitor/panel", { replace: true });
   };
 

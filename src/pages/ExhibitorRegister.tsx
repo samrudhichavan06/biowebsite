@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { addDoc, collection, getDocs, limit, query, where } from "firebase/firestore";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { sha256Hash } from "@/lib/crypto";
 
 const ExhibitorRegister = () => {
@@ -27,24 +28,41 @@ const ExhibitorRegister = () => {
       return;
     }
 
-    if (!isSupabaseConfigured || !supabase) {
-      toast.error("Supabase is not configured");
+    if (!isFirebaseConfigured || !db) {
+      toast.error("Firebase is not configured");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingExhibitors = await getDocs(
+      query(collection(db, "exhibitors"), where("email", "==", normalizedEmail), limit(1)),
+    );
+
+    if (!existingExhibitors.empty) {
+      toast.error("Account already exists", {
+        description: "An exhibitor account with this email is already registered.",
+      });
       setIsSubmitting(false);
       return;
     }
 
     const passwordHash = await sha256Hash(password);
 
-    const { error } = await supabase.from("exhibitors").insert({
-      booth_name: boothName.trim(),
-      company_name: companyName.trim(),
-      contact_name: contactName.trim(),
-      email: email.trim().toLowerCase(),
-      password_hash: passwordHash,
-    });
-
-    if (error) {
-      toast.error("Registration failed", { description: error.message });
+    try {
+      await addDoc(collection(db, "exhibitors"), {
+        booth_name: boothName.trim(),
+        company_name: companyName.trim(),
+        contact_name: contactName.trim(),
+        email: normalizedEmail,
+        password_hash: passwordHash,
+        created_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      toast.error("Registration failed", {
+        description: error instanceof Error ? error.message : "Could not create exhibitor account",
+      });
       setIsSubmitting(false);
       return;
     }

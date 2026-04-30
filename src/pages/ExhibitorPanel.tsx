@@ -4,7 +4,8 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { clearExhibitorSession, getExhibitorSession, isExhibitorAuthenticated } from "@/lib/exhibitorAuth";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 
 type ScannedAttendee = {
   passNumber: string;
@@ -48,27 +49,26 @@ const ExhibitorPanel = () => {
   const authenticated = isExhibitorAuthenticated();
 
   const fetchScans = async () => {
-    if (!exhibitor || !isSupabaseConfigured || !supabase) {
+    if (!exhibitor || !isFirebaseConfigured || !db) {
       setIsLoadingRecords(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from("exhibitor_scans")
-      .select(
-        "id, scanned_at, attendee_full_name, attendee_email, attendee_phone, attendee_company, attendee_designation, attendee_country, attendee_type, attendee_pass_number, event_name",
-      )
-      .eq("exhibitor_id", exhibitor.id)
-      .order("scanned_at", { ascending: false });
+    try {
+      const snapshot = await getDocs(query(collection(db, "exhibitor_scans"), where("exhibitor_id", "==", exhibitor.id)));
+      const data = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => String(b.scanned_at || "").localeCompare(String(a.scanned_at || ""))) as ScanRecord[];
 
-    if (error) {
-      toast.error("Could not load scans", { description: error.message });
+      setRecords(data);
+      setIsLoadingRecords(false);
+    } catch (error) {
+      toast.error("Could not load scans", {
+        description: error instanceof Error ? error.message : "Failed to load scan records",
+      });
       setIsLoadingRecords(false);
       return;
     }
-
-    setRecords((data ?? []) as ScanRecord[]);
-    setIsLoadingRecords(false);
   };
 
   useEffect(() => {
@@ -94,8 +94,8 @@ const ExhibitorPanel = () => {
 
     scanner.render(
       async (decodedText) => {
-        if (!isSupabaseConfigured || !supabase) {
-          toast.error("Supabase is not configured");
+        if (!isFirebaseConfigured || !db) {
+          toast.error("Firebase is not configured");
           return;
         }
 
@@ -131,24 +131,27 @@ const ExhibitorPanel = () => {
           return;
         }
 
-        const { error } = await supabase.from("exhibitor_scans").insert({
-          exhibitor_id: exhibitor.id,
-          exhibitor_booth_name: exhibitor.booth_name,
-          attendee_pass_number: attendee.passNumber,
-          attendee_full_name: attendee.fullName,
-          attendee_email: attendee.email,
-          attendee_phone: attendee.phone,
-          attendee_company: attendee.company,
-          attendee_designation: attendee.designation,
-          attendee_country: attendee.country,
-          attendee_type: attendee.attendeeType,
-          attendee_interests: attendee.interests,
-          event_name: attendee.eventName,
-          raw_payload: payload,
-        });
-
-        if (error) {
-          toast.error("Scan save failed", { description: error.message });
+        try {
+          await addDoc(collection(db, "exhibitor_scans"), {
+            exhibitor_id: exhibitor.id,
+            exhibitor_booth_name: exhibitor.booth_name,
+            attendee_pass_number: attendee.passNumber,
+            attendee_full_name: attendee.fullName,
+            attendee_email: attendee.email,
+            attendee_phone: attendee.phone,
+            attendee_company: attendee.company,
+            attendee_designation: attendee.designation,
+            attendee_country: attendee.country,
+            attendee_type: attendee.attendeeType,
+            attendee_interests: attendee.interests,
+            event_name: attendee.eventName,
+            raw_payload: payload,
+            scanned_at: new Date().toISOString(),
+          });
+        } catch (error) {
+          toast.error("Scan save failed", {
+            description: error instanceof Error ? error.message : "Could not save scan record",
+          });
           return;
         }
 
