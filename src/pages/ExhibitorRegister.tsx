@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { addDoc, collection, getDocs, limit, query, where } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { sha256Hash } from "@/lib/crypto";
+import { clearExhibitorSession, setExhibitorSession } from "@/lib/exhibitorAuth";
 
 const ExhibitorRegister = () => {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ const ExhibitorRegister = () => {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    // Clear any existing exhibitor session to avoid reusing an old account
+    try {
+      clearExhibitorSession();
+    } catch {}
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
@@ -36,22 +41,22 @@ const ExhibitorRegister = () => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingExhibitors = await getDocs(
-      query(collection(db, "exhibitors"), where("email", "==", normalizedEmail), limit(1)),
-    );
-
-    if (!existingExhibitors.empty) {
-      toast.error("Account already exists", {
-        description: "An exhibitor account with this email is already registered.",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    const passwordHash = await sha256Hash(password);
-
     try {
-      await addDoc(collection(db, "exhibitors"), {
+      const existingExhibitors = await getDocs(
+        query(collection(db, "exhibitors"), where("email", "==", normalizedEmail), limit(1)),
+      );
+
+      if (!existingExhibitors.empty) {
+        toast.error("Account already exists", {
+          description: "An exhibitor account with this email is already registered.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const passwordHash = await sha256Hash(password);
+
+      const docRef = await addDoc(collection(db, "exhibitors"), {
         booth_name: boothName.trim(),
         company_name: companyName.trim(),
         contact_name: contactName.trim(),
@@ -59,6 +64,31 @@ const ExhibitorRegister = () => {
         password_hash: passwordHash,
         created_at: new Date().toISOString(),
       });
+
+      // Auto-login the newly created exhibitor (replace any previous session)
+      try {
+        setExhibitorSession({
+          id: docRef.id,
+          booth_name: boothName.trim(),
+          company_name: companyName.trim(),
+          contact_name: contactName.trim(),
+          email: normalizedEmail,
+        });
+        toast.success("Exhibitor account created", {
+          description: "Welcome — you are signed in to your exhibitor panel.",
+        });
+        navigate("/exhibitor/panel", { replace: true });
+        return;
+      } catch (err) {
+        // fallback: clear session and navigate to login
+        try {
+          clearExhibitorSession();
+        } catch {}
+        toast.success("Exhibitor account created", {
+          description: "Please login to access the QR scanning panel.",
+        });
+        navigate("/exhibitor/login", { replace: true });
+      }
     } catch (error) {
       toast.error("Registration failed", {
         description: error instanceof Error ? error.message : "Could not create exhibitor account",
@@ -66,11 +96,6 @@ const ExhibitorRegister = () => {
       setIsSubmitting(false);
       return;
     }
-
-    toast.success("Exhibitor account created", {
-      description: "Please login to access the QR scanning panel.",
-    });
-    navigate("/exhibitor/login", { replace: true });
   };
 
   return (
@@ -133,7 +158,7 @@ const ExhibitorRegister = () => {
           </form>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            Already registered?{" "}
+            Already registered? {" "}
             <Link to="/exhibitor/login" className="font-medium text-primary underline-offset-4 hover:underline">
               Login here
             </Link>

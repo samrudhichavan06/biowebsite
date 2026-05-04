@@ -22,19 +22,19 @@ const RequiredStar = () => <span className="ml-1 text-destructive">*</span>;
 
 const passThemeMap: Record<string, { card: string; badge: string }> = {
   "bioenergy-global-2026": {
-    card: "bg-gradient-to-br from-emerald-950 via-emerald-800 to-lime-500 text-white",
+    card: "bg-gradient-to-br from-[#0a4762] via-[#0e7aa0] to-[#44cfa0] text-white",
     badge: "bg-white/20 text-white",
   },
   "reneweex-global-2026": {
-    card: "bg-gradient-to-br from-sky-950 via-cyan-700 to-emerald-400 text-white",
+    card: "bg-gradient-to-br from-[#0a4762] via-[#11759c] to-[#42c7a5] text-white",
     badge: "bg-white/20 text-white",
   },
   "waste-to-energy-expo": {
-    card: "bg-gradient-to-br from-indigo-950 via-blue-700 to-cyan-500 text-white",
+    card: "bg-gradient-to-br from-[#112c5e] via-[#1a5f96] to-[#42c7a5] text-white",
     badge: "bg-white/20 text-white",
   },
   "bioenergy-global-summit": {
-    card: "bg-gradient-to-br from-zinc-950 via-slate-800 to-emerald-700 text-white",
+    card: "bg-gradient-to-br from-[#10251f] via-[#0f5f68] to-[#44cfa0] text-white",
     badge: "bg-white/20 text-white",
   },
 };
@@ -351,36 +351,40 @@ export function EventRegistrationForm({ event }: { event: RegistrationEvent }) {
       </article>
 
       <Dialog open={Boolean(generatedPass)} onOpenChange={(open) => !open && setGeneratedPass(null)}>
-        <DialogContent className="max-w-2xl border-border/70 bg-background/95">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Your Entry Pass is Ready</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-[42rem] border-0 bg-[#f5f0d8] p-0 text-[#243123] shadow-2xl sm:rounded-[1.5rem]">
+          <DialogHeader className="relative px-6 pb-3 pt-6 sm:px-8 sm:pt-7">
+            <DialogTitle className="font-display text-[1.6rem] leading-tight text-[#243123] sm:text-[1.9rem]">
+              Your Entry Pass is Ready
+            </DialogTitle>
+            <DialogDescription className="mt-2 max-w-[34rem] text-sm text-[#4e5a45]">
               Show this pass at the venue. The QR code includes your submitted attendee details.
             </DialogDescription>
           </DialogHeader>
 
           {generatedPass && (
-            <div className="space-y-4">
+            <div className="space-y-4 px-6 pb-6 sm:px-8 sm:pb-8">
               <div
                 ref={passCardRef}
-                className={`relative overflow-hidden rounded-3xl p-5 shadow-card ${passTheme.card}`}
+                className={`relative overflow-hidden rounded-[2rem] p-5 shadow-[0_18px_45px_rgba(31,47,35,0.24)] ${passTheme.card}`}
               >
-                <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
-                <div className="pointer-events-none absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-black/20 blur-2xl" />
+                <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/15 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-black/20 blur-3xl" />
 
-                <div className="relative z-10 flex items-start justify-between gap-3">
-                  <div>
-                    <p className={`inline-flex rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${passTheme.badge}`}>
+                <div className="relative z-10 flex items-start justify-between gap-4">
+                  <div className="max-w-[70%]">
+                    <p className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] ${passTheme.badge}`}>
                       Event {event.n} Visitor Pass
                     </p>
-                    <h4 className="mt-3 font-display text-2xl leading-tight">{generatedPass.eventName}</h4>
-                    <p className="mt-1 text-xs text-white/85">Pass No: {generatedPass.passNumber}</p>
+                    <h4 className="mt-3 font-display text-[1.7rem] leading-[1.05] sm:text-[1.95rem]">{generatedPass.eventName}</h4>
+                    <p className="mt-1 text-xs font-medium text-white/85">Pass No: {generatedPass.passNumber}</p>
                   </div>
-                  <img src={event.logo} alt={generatedPass.eventName} className="h-10 w-auto object-contain" loading="lazy" />
+                  <div className="rounded-sm bg-white px-3 py-2 shadow-sm">
+                    <img src={event.logo} alt={generatedPass.eventName} className="h-8 w-auto object-contain" loading="lazy" />
+                  </div>
                 </div>
 
-                <div className="relative z-10 mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:text-sm">
+                <div className="relative z-10 mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[0.78rem] leading-snug sm:text-[0.9rem]">
                     <div className="col-span-2"><span className="text-white/80">Name:</span> {generatedPass.fullName}</div>
                     <div className="col-span-2"><span className="text-white/80">Email:</span> {generatedPass.email}</div>
                     <div><span className="text-white/80">Phone:</span> {generatedPass.phone}</div>
@@ -391,18 +395,18 @@ export function EventRegistrationForm({ event }: { event: RegistrationEvent }) {
                     <div className="col-span-2"><span className="text-white/80">Interests:</span> {generatedPass.interests}</div>
                   </dl>
 
-                  <div className="rounded-2xl border border-white/25 bg-white p-2.5 shadow-lg">
-                    <QRCodeSVG value={qrPayload} size={136} includeMargin />
+                  <div className="mx-auto rounded-[1.35rem] bg-white p-3 shadow-[0_10px_24px_rgba(0,0,0,0.14)] sm:mx-0">
+                    <QRCodeSVG value={qrPayload} size={150} includeMargin />
                   </div>
                 </div>
 
-                <p className="relative z-10 mt-3 text-[11px] uppercase tracking-[0.18em] text-white/80">
+                <p className="relative z-10 mt-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/80">
                   Issued {new Date(generatedPass.issuedAt).toLocaleString()}
                 </p>
               </div>
 
               <div className="flex justify-end">
-                <Button type="button" className="gap-2" onClick={handleDownloadPass}>
+                <Button type="button" className="gap-2 rounded-full bg-[#3d8f1e] px-5 hover:bg-[#2f7614]" onClick={handleDownloadPass}>
                   <Download className="h-4 w-4" />
                   Download Pass
                 </Button>

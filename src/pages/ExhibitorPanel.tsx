@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { clearExhibitorSession, getExhibitorSession, isExhibitorAuthenticated } from "@/lib/exhibitorAuth";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
-import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { COLLECTIONS } from "@/lib/collections";
 
 type ScannedAttendee = {
   passNumber: string;
@@ -34,6 +35,28 @@ type ScanRecord = {
   event_name: string;
 };
 
+type ExhibitorProfile = {
+  boothName?: string;
+  boothNumber?: string;
+  stallAllocated?: boolean;
+  stallSize?: "small" | "medium" | "large";
+  paymentStatus?: "pending" | "partial" | "completed";
+  paymentAmount?: number;
+  logoUrl?: string;
+  brochureUrl?: string;
+  exhibitorManualDownloaded?: boolean;
+  additionalNotes?: string;
+};
+
+type ExhibitorDownload = {
+  id: string;
+  title: string;
+  type: "brochure" | "floor_plan" | "manual" | "agenda" | "guidelines";
+  fileUrl: string;
+  fileSize: number;
+  category: string;
+};
+
 const SCANNER_ELEMENT_ID = "exhibitor-qr-scanner";
 
 const ExhibitorPanel = () => {
@@ -43,6 +66,14 @@ const ExhibitorPanel = () => {
   const [records, setRecords] = useState<ScanRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const [exhibitorProfile, setExhibitorProfile] = useState<ExhibitorProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [stallSize, setStallSize] = useState<"small" | "medium" | "large">("small");
+  const [stallNotes, setStallNotes] = useState("");
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [brochurePreview, setBrochurePreview] = useState<string | null>(null);
+  const [downloads, setDownloads] = useState<ExhibitorDownload[]>([]);
+  const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
   const latestDecodedRef = useRef<string>("");
 
@@ -75,6 +106,130 @@ const ExhibitorPanel = () => {
     setIsLoadingRecords(true);
     fetchScans();
   }, []);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!exhibitor || !isFirebaseConfigured || !db) {
+        setIsLoadingProfile(false);
+        return;
+      }
+
+      try {
+        const ref = doc(db, COLLECTIONS.EXHIBITORS, exhibitor.id);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          const profile: ExhibitorProfile = {
+            boothName: data.boothName || data.booth_name || exhibitor.booth_name,
+            boothNumber: data.boothNumber || data.booth_number || "",
+            stallAllocated: Boolean(data.stallAllocated || data.stall_allocated),
+            stallSize: data.stallSize || data.stall_size || "small",
+            paymentStatus: data.paymentStatus || data.payment_status || "pending",
+            paymentAmount: Number(data.paymentAmount || data.payment_amount || 0),
+            logoUrl: data.logoUrl || data.logo_url || "",
+            brochureUrl: data.brochureUrl || data.brochure_url || "",
+            exhibitorManualDownloaded: Boolean(data.exhibitorManualDownloaded || data.exhibitor_manual_downloaded),
+            additionalNotes: data.additionalNotes || data.additional_notes || "",
+          };
+          setExhibitorProfile(profile);
+          setStallSize(profile.stallSize || "small");
+          setStallNotes(profile.additionalNotes || "");
+          setLogoPreview(profile.logoUrl || null);
+          setBrochurePreview(profile.brochureUrl || null);
+        }
+      } catch (error) {
+        toast.error("Could not load exhibitor profile", {
+          description: error instanceof Error ? error.message : "Failed to load exhibitor data",
+        });
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [exhibitor]);
+
+  useEffect(() => {
+    const loadDownloads = async () => {
+      if (!isFirebaseConfigured || !db) {
+        setIsLoadingDownloads(false);
+        return;
+      }
+      try {
+        const snapshot = await getDocs(
+          query(collection(db, COLLECTIONS.DOWNLOADS), where("category", "==", "Exhibitor")),
+        );
+        const items = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as ExhibitorDownload),
+        }));
+        setDownloads(items);
+      } catch (error) {
+        toast.error("Could not load exhibitor downloads", {
+          description: error instanceof Error ? error.message : "Failed to load downloads",
+        });
+      } finally {
+        setIsLoadingDownloads(false);
+      }
+    };
+
+    loadDownloads();
+  }, []);
+
+  const handleSaveStallBooking = async () => {
+    if (!exhibitor || !isFirebaseConfigured || !db) {
+      return;
+    }
+
+    try {
+      const ref = doc(db, COLLECTIONS.EXHIBITORS, exhibitor.id);
+      await updateDoc(ref, {
+        stallSize,
+        additionalNotes: stallNotes,
+        updatedAt: new Date(),
+      });
+      setExhibitorProfile((prev) => ({
+        ...prev,
+        stallSize,
+        additionalNotes: stallNotes,
+      }));
+      toast.success("Stall booking updated", {
+        description: "Your stall booking details have been saved.",
+      });
+    } catch (error) {
+      toast.error("Could not save stall booking", {
+        description: error instanceof Error ? error.message : "Failed to update booking",
+      });
+    }
+  };
+
+  const handleFileUpload = async (file: File | null, type: "logo" | "brochure") => {
+    if (!file || !exhibitor || !isFirebaseConfigured || !db) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = String(reader.result || "");
+      try {
+        const ref = doc(db, COLLECTIONS.EXHIBITORS, exhibitor.id);
+        if (type === "logo") {
+          await updateDoc(ref, { logoUrl: dataUrl, updatedAt: new Date() });
+          setLogoPreview(dataUrl);
+        } else {
+          await updateDoc(ref, { brochureUrl: dataUrl, updatedAt: new Date() });
+          setBrochurePreview(dataUrl);
+        }
+        toast.success("Upload saved", { description: "Your file has been uploaded." });
+      } catch (error) {
+        toast.error("Upload failed", {
+          description: error instanceof Error ? error.message : "Could not upload file",
+        });
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (!authenticated || !exhibitor) {
@@ -199,6 +354,146 @@ const ExhibitorPanel = () => {
           >
             Logout
           </Button>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
+            <h2 className="text-sm font-medium">Stall booking & allocation</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Confirm your stall size, view allocation, and submit any notes.
+            </p>
+
+            <div className="mt-4 grid gap-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="text-xs text-muted-foreground">Stall size</label>
+                <select
+                  className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                  value={stallSize}
+                  onChange={(evt) => setStallSize(evt.target.value as "small" | "medium" | "large")}
+                >
+                  <option value="small">Small (10x10)</option>
+                  <option value="medium">Medium (20x20)</option>
+                  <option value="large">Large (30x30)</option>
+                </select>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="text-xs text-muted-foreground">Allocated booth</label>
+                <div className="rounded-md border border-border bg-background px-3 py-2 text-xs">
+                  {exhibitorProfile?.boothNumber || "Pending allocation"}
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-xs text-muted-foreground">Booking notes</label>
+                <textarea
+                  className="min-h-[80px] rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  value={stallNotes}
+                  onChange={(evt) => setStallNotes(evt.target.value)}
+                  placeholder="Share setup requests or booking notes."
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Allocation status: {exhibitorProfile?.stallAllocated ? "Allocated" : "Pending"}</span>
+              <Button size="sm" onClick={handleSaveStallBooking} disabled={isLoadingProfile}>
+                Save booking
+              </Button>
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
+            <h2 className="text-sm font-medium">Payment tracking</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Monitor your payment status and outstanding amounts.</p>
+
+            <div className="mt-4 grid gap-3 text-sm">
+              <div className="flex items-center justify-between rounded-lg border border-border/70 bg-background px-3 py-2">
+                <span className="text-xs text-muted-foreground">Status</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                  {exhibitorProfile?.paymentStatus || "pending"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/70 bg-background px-3 py-2">
+                <span className="text-xs text-muted-foreground">Amount</span>
+                <span className="text-sm font-semibold">{exhibitorProfile?.paymentAmount || 0} INR</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Payments are updated by the admin team once verified.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
+            <h2 className="text-sm font-medium">Booth materials</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Upload your logo and brochure for listing and printing.</p>
+
+            <div className="mt-4 grid gap-4">
+              <div className="grid gap-2">
+                <label className="text-xs text-muted-foreground">Logo upload (PNG/JPG)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="text-xs"
+                  onChange={(evt) => handleFileUpload(evt.target.files?.[0] || null, "logo")}
+                />
+                {logoPreview && (
+                  <img src={logoPreview} alt="Logo preview" className="h-12 w-auto rounded bg-white p-1" />
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-xs text-muted-foreground">Brochure upload (PDF/Image)</label>
+                <input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  className="text-xs"
+                  onChange={(evt) => handleFileUpload(evt.target.files?.[0] || null, "brochure")}
+                />
+                {brochurePreview && (
+                  <a
+                    href={brochurePreview}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline"
+                  >
+                    View uploaded brochure
+                  </a>
+                )}
+              </div>
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
+            <h2 className="text-sm font-medium">Booth guidelines & manual</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Download booth setup guidelines and exhibitor manual.</p>
+
+            <div className="mt-4 space-y-3">
+              {isLoadingDownloads && <p className="text-xs text-muted-foreground">Loading files...</p>}
+              {!isLoadingDownloads && downloads.length === 0 && (
+                <p className="text-xs text-muted-foreground">No exhibitor files uploaded yet.</p>
+              )}
+              {!isLoadingDownloads && downloads.length > 0 && (
+                <ul className="space-y-2 text-sm">
+                  {downloads.map((file) => (
+                    <li key={file.id} className="flex items-center justify-between rounded-lg border border-border/70 bg-background px-3 py-2">
+                      <span className="text-xs font-medium">{file.title}</span>
+                      <a
+                        href={file.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary underline"
+                      >
+                        Download
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </article>
         </div>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
