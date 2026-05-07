@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import heroImg from "@/assets/hero-bioenergy.jpg";
 import bio from "@/assets/event-bioenergy.jpg";
 import ren from "@/assets/event-reneweex.jpg";
@@ -20,6 +20,7 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
+import montage from "@/assets/Conference Montage Demo.mp4";
 
 const heroEvents = [
   {
@@ -97,6 +98,31 @@ export const Hero = () => {
   const [active, setActive] = useState(0);
   const current = heroEvents[active];
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const videos = Array.from(document.querySelectorAll("video[data-src]")) as HTMLVideoElement[];
+    if (!videos.length) return;
+
+    const onIntersection: IntersectionObserverCallback = (entries, obs) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const v = entry.target as HTMLVideoElement;
+        const src = v.getAttribute("data-src");
+        if (src && v.src !== src) {
+          v.src = src;
+          // start playback if muted/autoplay allowed
+          v.play().catch(() => {});
+        }
+        obs.unobserve(v);
+      });
+    };
+
+    const io = new IntersectionObserver(onIntersection, { root: null, threshold: 0.2 });
+    videos.forEach((v) => io.observe(v));
+
+    return () => io.disconnect();
+  }, []);
+
   return (
     <section className="relative overflow-hidden">
       {/* ambient background */}
@@ -129,6 +155,20 @@ export const Hero = () => {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Mobile video (above hero on small screens) */}
+      <div className="container-x block md:hidden mt-6">
+        <video
+          data-src={montage}
+          poster={heroImg}
+          className="w-full rounded-xl shadow-card object-cover"
+          preload="none"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
       </div>
 
       {/* Main hero grid */}
@@ -391,6 +431,21 @@ export const Hero = () => {
             </div>
           </div>
         </aside>
+      </div>
+
+      {/* Desktop video (under hero on md+ screens) */}
+      <div className="container-x hidden md:block mt-8">
+        <video
+          data-src={montage}
+          poster={heroImg}
+          className="w-full rounded-xl shadow-card object-cover"
+          preload="none"
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls
+        />
       </div>
 
       {/* Stat strip */}

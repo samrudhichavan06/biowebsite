@@ -18,6 +18,7 @@ import DashboardWrapper from "./pages/DashboardWrapper";
 import RegistrationSuccess from "./pages/RegistrationSuccess";
 import DownloadCenter from "./pages/DownloadCenter";
 import NotFound from "./pages/NotFound.tsx";
+import PostShowReport from "./pages/PostShowReport";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardWrapper />} />
           <Route path="/registration/success" element={<RegistrationSuccess />} />
           <Route path="/downloads" element={<DownloadCenter />} />
+          <Route path="/postshow-report" element={<PostShowReport />} />
           
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />

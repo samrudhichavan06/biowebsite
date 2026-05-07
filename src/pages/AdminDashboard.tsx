@@ -358,8 +358,8 @@ const AdminDashboard = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[#eef5df]">
-      <section className="grid min-h-screen w-full overflow-hidden border border-foreground/10 bg-background lg:grid-cols-[74px_1fr]">
+    <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5]">
+      <section className="grid min-h-screen w-full overflow-hidden border border-foreground/10 bg-transparent lg:grid-cols-[74px_1fr]">
         {/* Sidebar - Hidden on mobile */}
         <aside className="hidden bg-gradient-to-b from-[#03280f] to-[#024221] p-3 text-white lg:flex lg:flex-col lg:items-center lg:justify-between">
           <div className="space-y-5">
@@ -446,13 +446,13 @@ const AdminDashboard = () => {
           </button>
         </aside>
 
-        <div className="p-3 sm:p-4 md:p-5 overflow-y-auto pb-20 lg:pb-0">
+        <div className="p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 lg:pb-0">
           {/* Top Bar */}
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/70 px-3 sm:px-4 py-3">
+          <div className="flex flex-col gap-3 rounded-2xl border border-[#0f2f1b]/10 bg-white/75 px-3 sm:px-4 py-3 shadow-sm backdrop-blur">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-lg sm:text-xl font-semibold">Event Admin</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">Registration control center</p>
+                <h1 className="text-lg sm:text-xl font-semibold text-[#0c2c17]">Event Admin</h1>
+                <p className="text-xs sm:text-sm text-[#50604a]">Registration control center</p>
               </div>
               <Button
                 type="button"
@@ -473,12 +473,12 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="w-full h-10 rounded-full border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
+                  className="w-full h-10 rounded-full border border-[#0f2f1b]/15 bg-white pl-9 pr-3 text-sm outline-none focus:border-primary"
                 />
               </label>
               <select
                 id="event-filter"
-                className="h-10 rounded-full border border-border bg-background px-3 text-sm w-full sm:w-auto"
+                className="h-10 rounded-full border border-[#0f2f1b]/15 bg-white px-3 text-sm w-full sm:w-auto"
                 value={selectedEvent}
                 onChange={(evt) => setSelectedEvent(evt.target.value)}
               >
@@ -507,17 +507,17 @@ const AdminDashboard = () => {
                         <p className="mt-2 text-2xl sm:text-3xl font-semibold">{totalVisitors}</p>
                         <p className="mt-1 text-xs text-lime-300">Live registrations</p>
                       </article>
-                      <article className="rounded-2xl border border-border/70 bg-card p-4">
+                      <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Today</p>
                         <p className="mt-2 text-2xl sm:text-3xl font-semibold">{todayVisitors}</p>
                         <p className="mt-1 text-xs text-emerald-600">new today</p>
                       </article>
-                      <article className="rounded-2xl border border-border/70 bg-card p-4">
+                      <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Companies</p>
                         <p className="mt-2 text-2xl sm:text-3xl font-semibold">{uniqueCompanies}</p>
                         <p className="mt-1 text-xs text-muted-foreground">participating</p>
                       </article>
-                      <article className="rounded-2xl border border-border/70 bg-card p-4">
+                      <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Countries</p>
                         <p className="mt-2 text-2xl sm:text-3xl font-semibold">{uniqueCountries}</p>
                         <p className="mt-1 text-xs text-muted-foreground">global reach</p>
@@ -525,7 +525,7 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Analytics Chart */}
-                    <article className="rounded-2xl border border-border/70 bg-card p-4">
+                    <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <h2 className="text-sm font-medium">Registration Analytics</h2>
                         <span className="text-xs text-muted-foreground">Last 7 days</span>
@@ -549,14 +549,14 @@ const AdminDashboard = () => {
                     </article>
 
                     {/* Registrations Table - Responsive */}
-                    <article className="rounded-2xl border border-border/70 bg-card overflow-hidden">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/70 px-3 sm:px-4 py-3">
+                    <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white overflow-hidden shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#0f2f1b]/10 px-3 sm:px-4 py-3">
                         <h2 className="text-sm font-medium">Recent Registrations</h2>
                         <span className="text-xs text-muted-foreground">{filteredRecords.length} rows</span>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-max text-sm">
-                          <thead>
+                          <thead className="bg-[#f5f2e8]">
                             <tr className="border-b border-border/50 text-left text-xs uppercase tracking-[0.12em] text-muted-foreground bg-background/30">
                               <th className="px-3 sm:px-4 py-3 font-medium whitespace-nowrap">Created</th>
                               <th className="px-3 sm:px-4 py-3 font-medium whitespace-nowrap hidden sm:table-cell">Event</th>
@@ -596,7 +596,7 @@ const AdminDashboard = () => {
 
                   {/* Right Sidebar - Event Distribution & Notes */}
                   <div className="space-y-4">
-                    <article className="rounded-2xl border border-border/70 bg-card p-4">
+                    <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-sm font-medium">Event Distribution</h3>
                         <CircleDollarSign className="h-4 w-4 text-emerald-700" />
@@ -623,7 +623,7 @@ const AdminDashboard = () => {
                       </ul>
                     </article>
 
-                    <article className="rounded-2xl border border-border/70 bg-card p-4">
+                    <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                       <h3 className="text-sm font-medium">Dashboard Notes</h3>
                       <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
                         <li>Use event filter from the top bar to narrow records.</li>
@@ -637,7 +637,7 @@ const AdminDashboard = () => {
 
               {selectedMenu === "analytics" && (
                 <div className="grid gap-4">
-                  <article className="rounded-2xl border border-border/70 bg-card p-4">
+                  <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                     <h2 className="text-sm font-medium">Analytics Overview</h2>
                     <div className="mt-4">
                       <p className="text-sm text-muted-foreground">Summary metrics and visualizations based on registration data.</p>
@@ -653,7 +653,7 @@ const AdminDashboard = () => {
 
               {selectedMenu === "users" && (
                 <div className="grid gap-4">
-                  <article className="rounded-2xl border border-border/70 bg-card p-4">
+                  <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-medium">User Management</h2>
                       <span className="text-xs text-muted-foreground">{filteredUsers.length} records</span>
@@ -664,7 +664,7 @@ const AdminDashboard = () => {
                           <button
                             key={r}
                             onClick={() => setRoleFilter(r as any)}
-                            className={`px-3 py-1 rounded-full text-xs ${roleFilter === r ? 'bg-[#08331a] text-white' : 'bg-background border border-border'}`}>
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition ${roleFilter === r ? 'bg-[#08331a] text-white shadow-sm' : 'bg-white border border-[#0f2f1b]/15 text-[#2c3c2a]'}`}>
                             {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
                           </button>
                         ))}
@@ -675,9 +675,9 @@ const AdminDashboard = () => {
                         <Button size="sm" onClick={async () => { const ok = await openScannerAndMark(scannerCode); if (ok) alert('Marked as scanned'); else alert('Not found'); }}>Scan</Button>
                       </div>
                     </div>
-                    <div className="mt-2 overflow-x-auto">
+                    <div className="mt-2 overflow-x-auto rounded-xl border border-[#0f2f1b]/10">
                       <table className="w-full text-sm">
-                        <thead>
+                        <thead className="bg-[#f5f2e8]">
                           <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border/50">
                             <th className="px-3 py-2">Collection</th>
                             <th className="px-3 py-2">Name / Company</th>
@@ -687,7 +687,7 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody key={roleFilter}>
                           {filteredUsers.map((u) => (
-                            <tr key={`${u._collection}-${u.id}`} className="border-b border-border/30 hover:bg-background/50">
+                            <tr key={`${u._collection}-${u.id}`} className="border-b border-border/30 hover:bg-[#f7f4ea]">
                               <td className="px-3 py-2 text-xs font-medium">{u._collection}</td>
                               <td className="px-3 py-2">{u.companyName || `${u.firstName || ''} ${u.lastName || ''}`}</td>
                               <td className="px-3 py-2 text-xs">{u.email}</td>
@@ -722,7 +722,7 @@ const AdminDashboard = () => {
                       </table>
                     </div>
                     <div className="mt-4 grid gap-2 grid-cols-1 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-border/70 bg-card p-3">
+                      <div className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-3 shadow-sm">
                         <h3 className="text-sm font-medium">Broadcast Message</h3>
                         <div className="mt-2 space-y-2">
                           <input className="w-full rounded border px-2 py-1" placeholder="Title" value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} />
@@ -744,12 +744,12 @@ const AdminDashboard = () => {
                   </article>
 
                   {roleFilter === 'exhibitors' && (
-                    <article className="rounded-2xl border border-border/70 bg-card p-4">
+                    <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between">
                         <h2 className="text-sm font-medium">Exhibitor Management</h2>
                         <span className="text-xs text-muted-foreground">{filteredUsers.length} exhibitors</span>
                       </div>
-                      <div className="mt-3 overflow-x-auto">
+                      <div className="mt-3 overflow-x-auto rounded-xl border border-[#0f2f1b]/10">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border/50">
@@ -763,7 +763,7 @@ const AdminDashboard = () => {
                           </thead>
                           <tbody>
                             {filteredUsers.map((u) => (
-                              <tr key={`exhibitor-${u.id}`} className="border-b border-border/30 hover:bg-background/50">
+                              <tr key={`exhibitor-${u.id}`} className="border-b border-border/30 hover:bg-[#f7f4ea]">
                                 <td className="px-3 py-2">
                                   <div className="text-xs font-medium">{u.companyName || u.company_name || '—'}</div>
                                   <div className="text-[11px] text-muted-foreground">{u.contactName || u.contact_name || '—'}</div>
@@ -866,7 +866,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     <div className="mt-4">
-                      <textarea value={eventsEditor} onChange={(e) => setEventsEditor(e.target.value)} rows={12} className="w-full rounded border border-border p-3 bg-background text-sm" />
+                      <textarea value={eventsEditor} onChange={(e) => setEventsEditor(e.target.value)} rows={12} className="w-full rounded border border-[#0f2f1b]/15 p-3 bg-white text-sm" />
                       <div className="mt-3 flex gap-2">
                         <Button onClick={() => {
                           try {

@@ -11,6 +11,7 @@ const partners: { name: string; logo?: string }[] = [
   { name: "Waste to Energy", logo: wte },
   { name: "NCBI", logo: ncbi },
   { name: "Durham University" },
+  { name: "Samarth (Ministry of Power)", logo: "/partners/samarth.png" },
 ];
 
 export const Partners = () => (

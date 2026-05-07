@@ -3,9 +3,10 @@ import { Hero } from "@/components/landing/Hero";
 import { Events } from "@/components/landing/Events";
 import { About } from "@/components/landing/About";
 import { Venue } from "@/components/landing/Venue";
-import { Partners } from "@/components/landing/Partners";
+// Partners section removed from homepage — content consolidated in PostShowReportSection
 import { CTA } from "@/components/landing/CTA";
 import { Zones } from "@/components/landing/Zones";
+import { PostShowReportSection } from "@/components/landing/PostShowReportSection";
 import { Footer } from "@/components/landing/Footer";
 
 const Index = () => (
@@ -15,8 +16,8 @@ const Index = () => (
     <Zones />
     <Events />
     <About />
+    <PostShowReportSection />
     <Venue />
-    <Partners />
     <CTA />
     <Footer />
   </main>
