@@ -20,7 +20,6 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
-import montage from "@/assets/Conference Montage Demo.mp4";
 
 const heroEvents = [
   {
@@ -160,7 +159,7 @@ export const Hero = () => {
       {/* Mobile video (above hero on small screens) */}
       <div className="container-x block md:hidden mt-6">
         <video
-          data-src={montage}
+          data-src="/videos/Conference-Montage-Demo.mp4"
           poster={heroImg}
           className="w-full rounded-xl shadow-card object-cover"
           preload="none"
@@ -436,7 +435,7 @@ export const Hero = () => {
       {/* Desktop video (under hero on md+ screens) */}
       <div className="container-x hidden md:block mt-8">
         <video
-          data-src={montage}
+          data-src="/videos/Conference-Montage-Demo.mp4"
           poster={heroImg}
           className="w-full rounded-xl shadow-card object-cover"
           preload="none"
