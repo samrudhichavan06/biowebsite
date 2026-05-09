@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { eventCatalog } from "@/lib/events";
 
 export const Events = () => (
-  <section id="events" className="container-x py-20 md:py-28">
+  <section id="events" className="container-x py-18 md:py-24">
     <div className="flex flex-wrap items-end justify-between gap-6">
       <div className="max-w-2xl">
         <span className="chip">Four events · One venue</span>
@@ -17,14 +17,14 @@ export const Events = () => (
       </p>
     </div>
 
-    <div className="mt-14 grid gap-5 md:grid-cols-2">
+    <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch">
       {eventCatalog.map((e) => (
         <article
           key={e.n}
-          className={`group relative flex w-full flex-col overflow-hidden rounded-[1.75rem] ${e.tone} shadow-card transition-transform hover:-translate-y-1`}
+          className={`group relative flex w-full flex-col overflow-hidden rounded-[1.4rem] ${e.tone} shadow-card transition-transform hover:-translate-y-1`}
         >
           <Link to={`/register/${e.id}`} aria-label={`Open registration page for ${e.name}`}>
-            <div className="relative h-72 overflow-hidden">
+            <div className="relative h-44 overflow-hidden md:h-52 lg:h-40 xl:h-44">
               <img
                 src={e.img}
                 alt={e.name}
@@ -41,19 +41,19 @@ export const Events = () => (
               </div>
             </div>
           </Link>
-          <div className="flex flex-1 flex-col gap-4 p-6 md:p-7">
-            <img src={e.logo} alt={e.name} className="h-10 w-auto self-start object-contain" loading="lazy" />
-            <h3 className="font-display text-3xl leading-tight">{e.name}</h3>
-            <p className="text-sm opacity-80">{e.tag}</p>
-            <div className="mt-auto flex flex-wrap gap-2">
+          <div className="flex flex-1 flex-col gap-3 p-4 md:p-5 lg:p-4 xl:p-5">
+            <img src={e.logo} alt={e.name} className="h-8 w-auto self-start object-contain" loading="lazy" />
+            <h3 className="font-display text-2xl leading-tight xl:text-[1.6rem]">{e.name}</h3>
+            <p className="text-xs leading-relaxed opacity-80 xl:text-sm">{e.tag}</p>
+            <div className="mt-auto flex flex-wrap gap-1.5">
               {e.focus.map((f) => (
-                <span key={f} className="rounded-full border border-current/20 px-3 py-1 text-xs uppercase tracking-wider opacity-80">
+                <span key={f} className="rounded-full border border-current/20 px-2.5 py-0.5 text-[0.62rem] uppercase tracking-wider opacity-80">
                   {f}
                 </span>
               ))}
             </div>
             <div className="pt-2">
-              <Button asChild className="h-10 rounded-full px-5">
+              <Button asChild className="h-9 rounded-full px-4 text-sm">
                 <Link to={`/register/${e.id}`}>Register Now</Link>
               </Button>
             </div>

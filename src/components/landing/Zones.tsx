@@ -68,37 +68,37 @@ export function Zones() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-secondary/30">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold font-display text-foreground mb-4">Choose Your Path</h2>
-          <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
+    <section className="px-4 py-16 bg-secondary/30 lg:py-18">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-10 text-center lg:mb-12">
+          <h2 className="mb-3 text-4xl font-bold font-display text-foreground md:text-5xl">Choose Your Path</h2>
+          <p className="mx-auto max-w-2xl text-base text-foreground/70 md:text-lg">
             Select the registration zone that matches your role and unlock tailored features, resources, and networking opportunities designed for your success.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
           {zones.map((zone, idx) => {
             const Icon = zone.icon;
             return (
-              <Card key={idx} className="group hover:shadow-card transition-all duration-300 overflow-hidden border-border bg-card">
+              <Card key={idx} className="group overflow-hidden border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
                 <div className={`h-1 bg-gradient-to-r ${zone.color}`} />
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 bg-gradient-to-br ${zone.color} rounded-xl text-primary-foreground`}>
-                      <Icon size={28} strokeWidth={1.5} />
+                <CardHeader className="pb-2 pt-4">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className={`rounded-xl bg-gradient-to-br p-2.5 text-primary-foreground ${zone.color}`}>
+                      <Icon size={22} strokeWidth={1.5} />
                     </div>
                   </div>
-                  <CardTitle className="text-2xl font-display text-foreground">{zone.title}</CardTitle>
-                  <CardDescription className="text-base text-foreground/70">{zone.description}</CardDescription>
+                  <CardTitle className="text-xl font-display text-foreground">{zone.title}</CardTitle>
+                  <CardDescription className="text-sm leading-relaxed text-foreground/70">{zone.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5">
+                <CardContent className="space-y-4 pt-0">
                   <div>
-                    <p className="text-sm font-semibold text-foreground/60 mb-3 uppercase tracking-wide">Key Features</p>
-                    <ul className="space-y-2">
+                    <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-foreground/60">Key Features</p>
+                    <ul className="space-y-1.5">
                       {zone.features.map((feature, fidx) => (
-                        <li key={fidx} className="text-sm text-foreground/75 flex items-center gap-3">
-                          <span className={`w-2.5 h-2.5 rounded-full bg-gradient-to-r ${zone.color}`} />
+                        <li key={fidx} className="flex items-center gap-2 text-xs text-foreground/75 sm:text-sm">
+                          <span className={`h-2 w-2 rounded-full bg-gradient-to-r ${zone.color}`} />
                           {feature}
                         </li>
                       ))}
@@ -106,7 +106,7 @@ export function Zones() {
                   </div>
 
                   <Link to={zone.link} className="block">
-                    <Button className={`w-full bg-gradient-to-r ${zone.color} text-primary-foreground font-semibold hover:shadow-lg transition-all`}>
+                    <Button className={`h-9 w-full bg-gradient-to-r text-sm font-semibold text-primary-foreground transition-all hover:shadow-lg ${zone.color}`}>
                       Register Now
                     </Button>
                   </Link>
