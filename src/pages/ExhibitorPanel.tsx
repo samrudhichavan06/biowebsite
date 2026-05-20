@@ -110,6 +110,7 @@ const ExhibitorPanel = () => {
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
   const latestDecodedRef = useRef<string>("");
+  const [scannerStarted, setScannerStarted] = useState(false);
 
   // Premium dashboard states
   const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records">("scan");
@@ -316,13 +317,25 @@ const ExhibitorPanel = () => {
     reader.readAsDataURL(file);
   };
 
-  useEffect(() => {
-    if (!authenticated || !exhibitor || isLoadingProfile || exhibitorProfile?.approvalStatus !== "approved" || activeTab !== "scan") {
+useEffect(() => {
+    if (!authenticated || !exhibitor || isLoadingProfile || exhibitorProfile?.approvalStatus !== "approved") {
       return;
     }
 
-    // Wait a brief tick to ensure the DOM element is mounted when tabs switch
-    const timer = setTimeout(() => {
+    // Only run when scan tab is active and scanner isn't started
+    if (activeTab !== "scan" || scannerStarted) {
+      return;
+    }
+
+    const startScanner = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        setScannerError("Camera access required. Please allow camera permissions.");
+        return;
+      }
+
       if (!document.getElementById(SCANNER_ELEMENT_ID)) {
         return;
       }
@@ -331,12 +344,15 @@ const ExhibitorPanel = () => {
         SCANNER_ELEMENT_ID,
         {
           fps: 10,
-          qrbox: { width: 240, height: 240 },
+          qrbox: { width: 250, height: 250 },
+          disableFlip: false,
+          rememberLastUsedCamera: true,
         },
         false,
       );
 
       scannerInstanceRef.current = scanner;
+      setScannerStarted(true);
 
       scanner.render(
         async (decodedText) => {
@@ -378,7 +394,7 @@ const ExhibitorPanel = () => {
           }
 
           try {
-            await addDoc(collection(db, "exhibitor_scans"), {
+            const docRef = await addDoc(collection(db, "exhibitor_scans"), {
               exhibitor_id: exhibitor.id,
               exhibitor_booth_name: exhibitor.booth_name,
               attendee_pass_number: attendee.passNumber,
@@ -394,34 +410,53 @@ const ExhibitorPanel = () => {
               raw_payload: payload,
               scanned_at: new Date().toISOString(),
             });
+
+            const newRecord: ScanRecord = {
+              id: docRef.id,
+              scanned_at: new Date().toISOString(),
+              attendee_full_name: attendee.fullName,
+              attendee_email: attendee.email,
+              attendee_phone: attendee.phone,
+              attendee_company: attendee.company,
+              attendee_designation: attendee.designation,
+              attendee_country: attendee.country,
+              attendee_type: attendee.attendeeType,
+              attendee_pass_number: attendee.passNumber,
+              event_name: attendee.eventName,
+            };
+
+            setRecords(prev => [newRecord, ...prev]);
+            setLastScanned(attendee);
+            toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
+            
+            setTimeout(() => {
+              latestDecodedRef.current = "";
+            }, 2000);
           } catch (error) {
             toast.error("Scan save failed", {
               description: error instanceof Error ? error.message : "Could not save scan record",
             });
-            return;
           }
-
-          setLastScanned(attendee);
-          toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
-          fetchScans();
         },
-        () => {
-          // ignore noisy decode errors
+        (errorMessage) => {
+          if (errorMessage) {
+            console.error("Scanner error:", errorMessage);
+          }
         },
       );
-    }, 100);
+    };
+
+    startScanner();
 
     return () => {
-      clearTimeout(timer);
-      const scannerInstance = scannerInstanceRef.current;
-      scannerInstanceRef.current = null;
-      if (scannerInstance) {
-        scannerInstance.clear().catch(() => {
-          // no-op on cleanup
-        });
+      if (scannerInstanceRef.current) {
+        scannerInstanceRef.current.clear().catch(() => {});
+        scannerInstanceRef.current = null;
       }
+      latestDecodedRef.current = "";
+      setScannerStarted(false);
     };
-  }, [authenticated, exhibitor, isLoadingProfile, exhibitorProfile, activeTab]);
+  }, [authenticated, exhibitor, isLoadingProfile, exhibitorProfile, activeTab, scannerStarted]);
 
   if (!authenticated || !exhibitor) {
     return <Navigate to="/exhibitor/login" replace />;
@@ -429,15 +464,15 @@ const ExhibitorPanel = () => {
 
   if (isLoadingProfile) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5] flex items-center justify-center p-6">
+      <main className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-sm rounded-3xl border border-white/60 bg-white/70 p-8 shadow-xl backdrop-blur-md">
           <div className="relative inline-flex h-16 w-16 items-center justify-center">
             <div className="absolute inset-0 rounded-full border-4 border-lime-200"></div>
             <div className="absolute inset-0 rounded-full border-4 border-emerald-700 border-t-transparent animate-spin"></div>
             <Sparkles className="h-6 w-6 text-emerald-800 animate-pulse" />
           </div>
-          <h2 className="text-xl font-display font-semibold text-[#0c2c17]">Synchronizing Console</h2>
-          <p className="text-xs text-[#50604a] leading-relaxed">
+          <h2 className="text-xl font-display font-semibold text-foreground">Synchronizing Console</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Fetching secure event catalogs, attendee logs, and stall profiles from the cloud.
           </p>
         </div>
@@ -448,13 +483,13 @@ const ExhibitorPanel = () => {
   const isApprovalPending = exhibitorProfile?.approvalStatus === "pending";
   if (isApprovalPending) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5] flex items-center justify-center p-4">
+      <main className="min-h-screen flex items-center justify-center p-4">
         <section className="w-full max-w-md rounded-3xl border border-white/60 bg-white/75 p-6 shadow-2xl backdrop-blur-md text-center md:p-8">
           <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-100/80 border border-amber-200/50 shadow-inner">
             <ShieldAlert className="h-8 w-8 text-amber-600" />
           </div>
-          <h2 className="text-3xl font-display font-bold text-[#0c2c17]">Approval Pending</h2>
-          <p className="mt-4 text-sm text-[#50604a] leading-relaxed">
+          <h2 className="text-3xl font-display font-bold text-foreground">Approval Pending</h2>
+          <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
             Your exhibitor profile is complete and has been securely sent to our event coordinators. Once verified and approved, you'll be granted live attendee scanning capabilities.
           </p>
           <div className="mt-6 rounded-2xl bg-amber-50/50 border border-amber-200/40 p-4 text-xs text-[#605a40] space-y-2 text-left">
@@ -469,7 +504,7 @@ const ExhibitorPanel = () => {
           </div>
           <div className="mt-8 flex flex-col gap-3">
             <Button
-              className="w-full h-11 rounded-xl bg-[#08331a] hover:bg-[#0b4a24] text-white shadow-sm"
+              className="w-full h-11 rounded-xl bg-background/90 hover:bg-muted/50 text-foreground shadow-sm"
               onClick={() => {
                 clearExhibitorSession();
                 navigate("/exhibitor/login");
@@ -495,7 +530,7 @@ const ExhibitorPanel = () => {
   });
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5] text-[#2c3c2a] flex flex-col lg:flex-row overflow-hidden">
+    <main className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row overflow-hidden">
       <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-gradient-to-b from-[#03280f] to-[#024221] text-white p-5 flex flex-col justify-between transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -630,21 +665,34 @@ const ExhibitorPanel = () => {
           </section>
 
           <section className="transition-all duration-300">
-            {activeTab === "scan" && (
-              <div className="grid gap-6 lg:grid-cols-[1fr_420px] items-start">
-                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
-                  <div className="flex items-center justify-between mb-4 border-b border-black/5 pb-3">
-                    <h2 className="text-base font-semibold text-emerald-950 font-display">Live Attendee Scanner</h2>
-                    <QrCode className="h-5 w-5 text-[#0a4d25] animate-pulse" />
-                  </div>
-                  <div className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto">
-                    <div className="absolute inset-6 border border-lime-400/20 rounded-xl pointer-events-none flex items-center justify-center">
-                      <div className="w-48 h-48 border-2 border-lime-400/50 border-dashed rounded-lg animate-pulse" />
-                    </div>
-                    <div id={SCANNER_ELEMENT_ID} className="relative z-10" />
-                  </div>
-                  {scannerError && <div className="mt-4 p-3 bg-red-50 border border-red-200/50 rounded-xl flex items-center gap-2.5 text-xs text-red-600">{scannerError}</div>}
-                </article>
+{activeTab === "scan" && (
+               <div className="grid gap-6 lg:grid-cols-[1fr_420px] items-start">
+                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
+                   <div className="flex items-center justify-between mb-4 border-b border-black/5 pb-3">
+                     <h2 className="text-base font-semibold text-emerald-950 font-display">Live Attendee Scanner</h2>
+                     <QrCode className="h-5 w-5 text-[#0a4d25] animate-pulse" />
+                   </div>
+                   <div className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto">
+                     <div className="absolute inset-6 border border-lime-400/20 rounded-xl pointer-events-none flex items-center justify-center">
+                       <div className="w-48 h-48 border-2 border-lime-400/50 border-dashed rounded-lg animate-pulse" />
+                     </div>
+                     {!scannerInstanceRef.current && (
+                       <div className="absolute inset-0 flex items-center justify-center z-10">
+                         <Button
+                           onClick={() => {
+                             const event = new CustomEvent('init-scanner');
+                             window.dispatchEvent(event);
+                           }}
+                           className="bg-lime-400 hover:bg-lime-500 text-emerald-950 font-semibold px-6 py-3 rounded-xl shadow-lg"
+                         >
+                           Tap to Scan
+                         </Button>
+                       </div>
+                     )}
+                     <div id={SCANNER_ELEMENT_ID} className="relative z-10 min-h-[200px]" />
+                   </div>
+                   {scannerError && <div className="mt-4 p-3 bg-red-50 border border-red-200/50 rounded-xl flex items-center gap-2.5 text-xs text-red-600">{scannerError}</div>}
+                 </article>
 
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
                   <h2 className="text-base font-semibold text-emerald-950 font-display mb-4 border-b border-black/5 pb-3">Last Scanned Attendee</h2>

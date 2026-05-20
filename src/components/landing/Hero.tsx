@@ -158,44 +158,44 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* Mobile registration quick links (above video) */}
-      <div className="container-x block md:hidden mt-8 mb-6">
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-semibold">Quick registration</p>
-          <div className="grid grid-cols-1 gap-2.5">
-            <a
-              href="#events"
-              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 hover:border-primary/50"
-            >
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                View events
-              </span>
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
-            <a
-              href="#events"
-              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 hover:border-primary/50"
-            >
-              <span className="flex items-center gap-2">
-                <Crown className="h-4 w-4" />
-                View events
-              </span>
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
-            <a
-              href="#events"
-              className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm font-medium text-accent transition hover:bg-accent/10 hover:border-accent/50"
-            >
-              <span className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                View events
-              </span>
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </div>
+       {/* Mobile registration quick links (above video) */}
+       <div className="container-x block md:hidden mt-8 mb-6">
+         <div className="space-y-3">
+           <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-semibold">Quick registration</p>
+           <div className="grid grid-cols-1 gap-2.5">
+             <a
+               href="#events"
+               className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 hover:border-primary/50"
+             >
+               <span className="flex items-center gap-2">
+                 <Users className="h-4 w-4" />
+                 Register for Event
+               </span>
+               <ArrowUpRight className="h-4 w-4" />
+             </a>
+             <a
+               href="/delegate/register"
+               className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 hover:border-primary/50"
+             >
+               <span className="flex items-center gap-2">
+                 <Crown className="h-4 w-4" />
+                 Delegate Registration
+               </span>
+               <ArrowUpRight className="h-4 w-4" />
+             </a>
+             <a
+               href="/exhibitor/register"
+               className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm font-medium text-accent transition hover:bg-accent/10 hover:border-accent/50"
+             >
+               <span className="flex items-center gap-2">
+                 <Plus className="h-4 w-4" />
+                 Exhibit Registration
+               </span>
+               <ArrowUpRight className="h-4 w-4" />
+             </a>
+           </div>
+         </div>
+       </div>
 
       {/* Mobile video (above hero on small screens) */}
       <div className="container-x block md:hidden mt-6">
