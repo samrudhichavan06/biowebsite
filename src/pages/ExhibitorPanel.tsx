@@ -110,7 +110,7 @@ const ExhibitorPanel = () => {
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
   const latestDecodedRef = useRef<string>("");
-  const [scannerStarted, setScannerStarted] = useState(false);
+  const [scannerInitTrigger, setScannerInitTrigger] = useState(0);
 
   // Premium dashboard states
   const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records">("scan");
@@ -322,12 +322,22 @@ useEffect(() => {
       return;
     }
 
-    // Only run when scan tab is active and scanner isn't started
-    if (activeTab !== "scan" || scannerStarted) {
+    // Don't run if scan tab is not active
+    if (activeTab !== "scan") {
+      // Clean up scanner when leaving scan tab
+      if (scannerInstanceRef.current) {
+        scannerInstanceRef.current.clear().catch(() => {});
+        scannerInstanceRef.current = null;
+      }
       return;
     }
 
     const startScanner = async () => {
+      // Check if scanner is already running
+      if (scannerInstanceRef.current) {
+        return;
+      }
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         stream.getTracks().forEach(track => track.stop());
@@ -352,7 +362,6 @@ useEffect(() => {
       );
 
       scannerInstanceRef.current = scanner;
-      setScannerStarted(true);
 
       scanner.render(
         async (decodedText) => {
@@ -454,9 +463,8 @@ useEffect(() => {
         scannerInstanceRef.current = null;
       }
       latestDecodedRef.current = "";
-      setScannerStarted(false);
     };
-  }, [authenticated, exhibitor, isLoadingProfile, exhibitorProfile, activeTab, scannerStarted]);
+  }, [authenticated, exhibitor, isLoadingProfile, exhibitorProfile, activeTab, scannerInitTrigger]);
 
   if (!authenticated || !exhibitor) {
     return <Navigate to="/exhibitor/login" replace />;
@@ -672,23 +680,20 @@ useEffect(() => {
                      <h2 className="text-base font-semibold text-emerald-950 font-display">Live Attendee Scanner</h2>
                      <QrCode className="h-5 w-5 text-[#0a4d25] animate-pulse" />
                    </div>
-                   <div className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto">
-                     <div className="absolute inset-6 border border-lime-400/20 rounded-xl pointer-events-none flex items-center justify-center">
-                       <div className="w-48 h-48 border-2 border-lime-400/50 border-dashed rounded-lg animate-pulse" />
-                     </div>
+                   <div className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto min-h-[280px]">
                      {!scannerInstanceRef.current && (
-                       <div className="absolute inset-0 flex items-center justify-center z-10">
+                       <div className="absolute inset-0 flex items-center justify-center z-20">
                          <Button
-                           onClick={() => {
-                             const event = new CustomEvent('init-scanner');
-                             window.dispatchEvent(event);
-                           }}
-                           className="bg-lime-400 hover:bg-lime-500 text-emerald-950 font-semibold px-6 py-3 rounded-xl shadow-lg"
+                           onClick={() => setScannerInitTrigger(t => t + 1)}
+                           className="bg-lime-400 hover:bg-lime-500 text-emerald-950 font-semibold px-6 py-3 rounded-xl shadow-lg text-base"
                          >
                            Tap to Scan
                          </Button>
                        </div>
                      )}
+                     <div className="absolute inset-6 border border-lime-400/20 rounded-xl pointer-events-none flex items-center justify-center">
+                       <div className="w-48 h-48 border-2 border-lime-400/50 border-dashed rounded-lg animate-pulse" />
+                     </div>
                      <div id={SCANNER_ELEMENT_ID} className="relative z-10 min-h-[200px]" />
                    </div>
                    {scannerError && <div className="mt-4 p-3 bg-red-50 border border-red-200/50 rounded-xl flex items-center gap-2.5 text-xs text-red-600">{scannerError}</div>}
