@@ -62,6 +62,7 @@ const ExhibitorRegister = () => {
         contact_name: contactName.trim(),
         email: normalizedEmail,
         password_hash: passwordHash,
+        approval_status: "pending",
         created_at: new Date().toISOString(),
       });
 

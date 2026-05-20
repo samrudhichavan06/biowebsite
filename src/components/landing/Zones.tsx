@@ -6,21 +6,6 @@ import { Users, Crown, Hammer, Zap } from "lucide-react";
 export function Zones() {
   const zones = [
     {
-      title: "Visitor Zone",
-      description: "Quick registration, badge download, event schedule, and exhibitor list",
-      icon: Users,
-      color: "from-primary to-primary/80",
-      bgLight: "bg-primary/10",
-      textColor: "text-primary",
-      link: "/visitor/register",
-      features: [
-        "Fast registration",
-        "QR badge download",
-        "Event brochure",
-        "Exhibitor directory",
-      ],
-    },
-    {
       title: "Exhibitor Zone",
       description: "Stall booking, payment tracking, booth guidelines, and material uploads",
       icon: Users,
@@ -35,6 +20,7 @@ export function Zones() {
         "Exhibitor manual",
       ],
     },
+    
     {
       title: "Delegate / Conference Zone",
       description: "Conference registration, speaker details, agenda, and VIP passes",
@@ -48,21 +34,6 @@ export function Zones() {
         "Agenda access",
         "Speaker directory",
         "Certificate generation",
-      ],
-    },
-    {
-      title: "Fabricator / Vendor Zone",
-      description: "Design submission, approval system, guidelines, and drawings upload",
-      icon: Hammer,
-      color: "from-accent/70 to-accent/50",
-      bgLight: "bg-accent/5",
-      textColor: "text-accent",
-      link: "/fabricator/register",
-      features: [
-        "Design submission",
-        "Approval tracking",
-        "Guidelines access",
-        "Drawings portal",
       ],
     },
   ];

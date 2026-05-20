@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,34 @@ import { clearExhibitorSession, getExhibitorSession, isExhibitorAuthenticated } 
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { addDoc, collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/collections";
+import {
+  QrCode,
+  Store,
+  CreditCard,
+  FileCheck,
+  LogOut,
+  Menu,
+  X,
+  UserCheck,
+  Upload,
+  Sparkles,
+  ShieldAlert,
+  Download,
+  Copy,
+  ExternalLink,
+  ChevronRight,
+  TrendingUp,
+  FileText,
+  Search,
+  CheckCircle,
+  HelpCircle,
+  Clock,
+  Briefcase,
+  Globe,
+  Mail,
+  Phone,
+  ArrowRight,
+} from "lucide-react";
 
 type ScannedAttendee = {
   passNumber: string;
@@ -46,6 +74,7 @@ type ExhibitorProfile = {
   brochureUrl?: string;
   exhibitorManualDownloaded?: boolean;
   additionalNotes?: string;
+  approvalStatus?: "pending" | "approved" | "rejected";
 };
 
 type ExhibitorDownload = {
@@ -61,7 +90,12 @@ const SCANNER_ELEMENT_ID = "exhibitor-qr-scanner";
 
 const ExhibitorPanel = () => {
   const navigate = useNavigate();
-  const exhibitor = getExhibitorSession();
+  let exhibitor: ReturnType<typeof getExhibitorSession> = null;
+  try {
+    exhibitor = getExhibitorSession();
+  } catch {
+    exhibitor = null;
+  }
   const [lastScanned, setLastScanned] = useState<ScannedAttendee | null>(null);
   const [records, setRecords] = useState<ScanRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
@@ -77,7 +111,51 @@ const ExhibitorPanel = () => {
   const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
   const latestDecodedRef = useRef<string>("");
 
-  const authenticated = isExhibitorAuthenticated();
+  // Premium dashboard states
+  const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records">("scan");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Client-side export to CSV function
+  const exportMyScans = () => {
+    if (records.length === 0) {
+      toast.error("No scans to export", { description: "Your scan record list is currently empty." });
+      return;
+    }
+    try {
+      const rows = records.map(r => ({
+        "Scanned At": new Date(r.scanned_at).toLocaleString(),
+        "Pass Number": r.attendee_pass_number,
+        "Event Name": r.event_name,
+        "Full Name": r.attendee_full_name,
+        "Email Address": r.attendee_email,
+        "Phone Number": r.attendee_phone,
+        "Company Name": r.attendee_company,
+        "Designation": r.attendee_designation,
+        "Country": r.attendee_country,
+        "Attendee Type": r.attendee_type,
+      }));
+      const header = Object.keys(rows[0]).join(',') + '\n';
+      const csv = header + rows.map(r => Object.values(r).map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(exhibitor?.booth_name || "exhibitor").replace(/\s+/g, '_')}_scan_leads.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Export successful", { description: "Attendee scan leads CSV has been downloaded." });
+    } catch (err) {
+      toast.error("Export failed", { description: "Could not generate CSV file." });
+    }
+  };
+
+  let authenticated = false;
+  try {
+    authenticated = isExhibitorAuthenticated();
+  } catch {
+    authenticated = false;
+  }
 
   const fetchScans = async () => {
     if (!exhibitor || !isFirebaseConfigured || !db) {
@@ -130,12 +208,19 @@ const ExhibitorPanel = () => {
             brochureUrl: data.brochureUrl || data.brochure_url || "",
             exhibitorManualDownloaded: Boolean(data.exhibitorManualDownloaded || data.exhibitor_manual_downloaded),
             additionalNotes: data.additionalNotes || data.additional_notes || "",
+            approvalStatus: data.approval_status || "pending",
           };
           setExhibitorProfile(profile);
           setStallSize(profile.stallSize || "small");
           setStallNotes(profile.additionalNotes || "");
           setLogoPreview(profile.logoUrl || null);
           setBrochurePreview(profile.brochureUrl || null);
+        } else {
+          const profile: ExhibitorProfile = {
+            boothName: exhibitor.booth_name,
+            approvalStatus: "pending",
+          };
+          setExhibitorProfile(profile);
         }
       } catch (error) {
         toast.error("Could not load exhibitor profile", {
@@ -232,94 +317,102 @@ const ExhibitorPanel = () => {
   };
 
   useEffect(() => {
-    if (!authenticated || !exhibitor) {
+    if (!authenticated || !exhibitor || isLoadingProfile || exhibitorProfile?.approvalStatus !== "approved" || activeTab !== "scan") {
       return;
     }
 
-    const scanner = new Html5QrcodeScanner(
-      SCANNER_ELEMENT_ID,
-      {
-        fps: 10,
-        qrbox: { width: 240, height: 240 },
-      },
-      false,
-    );
+    // Wait a brief tick to ensure the DOM element is mounted when tabs switch
+    const timer = setTimeout(() => {
+      if (!document.getElementById(SCANNER_ELEMENT_ID)) {
+        return;
+      }
 
-    scannerInstanceRef.current = scanner;
+      const scanner = new Html5QrcodeScanner(
+        SCANNER_ELEMENT_ID,
+        {
+          fps: 10,
+          qrbox: { width: 240, height: 240 },
+        },
+        false,
+      );
 
-    scanner.render(
-      async (decodedText) => {
-        if (!isFirebaseConfigured || !db) {
-          toast.error("Firebase is not configured");
-          return;
-        }
+      scannerInstanceRef.current = scanner;
 
-        if (decodedText === latestDecodedRef.current) {
-          return;
-        }
+      scanner.render(
+        async (decodedText) => {
+          if (!isFirebaseConfigured || !db) {
+            toast.error("Firebase is not configured");
+            return;
+          }
 
-        latestDecodedRef.current = decodedText;
+          if (decodedText === latestDecodedRef.current) {
+            return;
+          }
 
-        let payload: Record<string, unknown>;
-        try {
-          payload = JSON.parse(decodedText) as Record<string, unknown>;
-        } catch {
-          toast.error("Invalid QR", { description: "QR code format is not recognized." });
-          return;
-        }
+          latestDecodedRef.current = decodedText;
 
-        const attendee: ScannedAttendee = {
-          passNumber: String(payload.pass_number || ""),
-          eventName: String(payload.event_name || ""),
-          fullName: String(payload.full_name || ""),
-          email: String(payload.email || ""),
-          phone: String(payload.phone || ""),
-          company: String(payload.company || ""),
-          designation: String(payload.designation || ""),
-          country: String(payload.country || ""),
-          attendeeType: String(payload.attendee_type || "Visitor"),
-          interests: String(payload.interests || ""),
-        };
+          let payload: Record<string, unknown>;
+          try {
+            payload = JSON.parse(decodedText) as Record<string, unknown>;
+          } catch {
+            toast.error("Invalid QR", { description: "QR code format is not recognized." });
+            return;
+          }
 
-        if (!attendee.passNumber || !attendee.fullName || !attendee.email) {
-          toast.error("Incomplete QR", { description: "Required attendee details are missing." });
-          return;
-        }
+          const attendee: ScannedAttendee = {
+            passNumber: String(payload.pass_number || ""),
+            eventName: String(payload.event_name || ""),
+            fullName: String(payload.full_name || ""),
+            email: String(payload.email || ""),
+            phone: String(payload.phone || ""),
+            company: String(payload.company || ""),
+            designation: String(payload.designation || ""),
+            country: String(payload.country || ""),
+            attendeeType: String(payload.attendee_type || "Visitor"),
+            interests: String(payload.interests || ""),
+          };
 
-        try {
-          await addDoc(collection(db, "exhibitor_scans"), {
-            exhibitor_id: exhibitor.id,
-            exhibitor_booth_name: exhibitor.booth_name,
-            attendee_pass_number: attendee.passNumber,
-            attendee_full_name: attendee.fullName,
-            attendee_email: attendee.email,
-            attendee_phone: attendee.phone,
-            attendee_company: attendee.company,
-            attendee_designation: attendee.designation,
-            attendee_country: attendee.country,
-            attendee_type: attendee.attendeeType,
-            attendee_interests: attendee.interests,
-            event_name: attendee.eventName,
-            raw_payload: payload,
-            scanned_at: new Date().toISOString(),
-          });
-        } catch (error) {
-          toast.error("Scan save failed", {
-            description: error instanceof Error ? error.message : "Could not save scan record",
-          });
-          return;
-        }
+          if (!attendee.passNumber || !attendee.fullName || !attendee.email) {
+            toast.error("Incomplete QR", { description: "Required attendee details are missing." });
+            return;
+          }
 
-        setLastScanned(attendee);
-        toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
-        fetchScans();
-      },
-      () => {
-        // ignore noisy decode errors
-      },
-    );
+          try {
+            await addDoc(collection(db, "exhibitor_scans"), {
+              exhibitor_id: exhibitor.id,
+              exhibitor_booth_name: exhibitor.booth_name,
+              attendee_pass_number: attendee.passNumber,
+              attendee_full_name: attendee.fullName,
+              attendee_email: attendee.email,
+              attendee_phone: attendee.phone,
+              attendee_company: attendee.company,
+              attendee_designation: attendee.designation,
+              attendee_country: attendee.country,
+              attendee_type: attendee.attendeeType,
+              attendee_interests: attendee.interests,
+              event_name: attendee.eventName,
+              raw_payload: payload,
+              scanned_at: new Date().toISOString(),
+            });
+          } catch (error) {
+            toast.error("Scan save failed", {
+              description: error instanceof Error ? error.message : "Could not save scan record",
+            });
+            return;
+          }
+
+          setLastScanned(attendee);
+          toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
+          fetchScans();
+        },
+        () => {
+          // ignore noisy decode errors
+        },
+      );
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       const scannerInstance = scannerInstanceRef.current;
       scannerInstanceRef.current = null;
       if (scannerInstance) {
@@ -328,253 +421,322 @@ const ExhibitorPanel = () => {
         });
       }
     };
-  }, [authenticated, exhibitor]);
+  }, [authenticated, exhibitor, isLoadingProfile, exhibitorProfile, activeTab]);
 
   if (!authenticated || !exhibitor) {
     return <Navigate to="/exhibitor/login" replace />;
   }
 
+  if (isLoadingProfile) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5] flex items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm rounded-3xl border border-white/60 bg-white/70 p-8 shadow-xl backdrop-blur-md">
+          <div className="relative inline-flex h-16 w-16 items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-4 border-lime-200"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-700 border-t-transparent animate-spin"></div>
+            <Sparkles className="h-6 w-6 text-emerald-800 animate-pulse" />
+          </div>
+          <h2 className="text-xl font-display font-semibold text-[#0c2c17]">Synchronizing Console</h2>
+          <p className="text-xs text-[#50604a] leading-relaxed">
+            Fetching secure event catalogs, attendee logs, and stall profiles from the cloud.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const isApprovalPending = exhibitorProfile?.approvalStatus === "pending";
+  if (isApprovalPending) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5] flex items-center justify-center p-4">
+        <section className="w-full max-w-md rounded-3xl border border-white/60 bg-white/75 p-6 shadow-2xl backdrop-blur-md text-center md:p-8">
+          <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-100/80 border border-amber-200/50 shadow-inner">
+            <ShieldAlert className="h-8 w-8 text-amber-600" />
+          </div>
+          <h2 className="text-3xl font-display font-bold text-[#0c2c17]">Approval Pending</h2>
+          <p className="mt-4 text-sm text-[#50604a] leading-relaxed">
+            Your exhibitor profile is complete and has been securely sent to our event coordinators. Once verified and approved, you'll be granted live attendee scanning capabilities.
+          </p>
+          <div className="mt-6 rounded-2xl bg-amber-50/50 border border-amber-200/40 p-4 text-xs text-[#605a40] space-y-2 text-left">
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-amber-700 min-w-[60px]">Booth:</span>
+              <span>{exhibitor.booth_name}</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-amber-700 min-w-[60px]">Status:</span>
+              <span>Pending Review</span>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-col gap-3">
+            <Button
+              className="w-full h-11 rounded-xl bg-[#08331a] hover:bg-[#0b4a24] text-white shadow-sm"
+              onClick={() => {
+                clearExhibitorSession();
+                navigate("/exhibitor/login");
+              }}
+            >
+              Back to Login
+            </Button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const filteredRecords = records.filter(r => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      r.attendee_full_name.toLowerCase().includes(q) ||
+      r.attendee_email.toLowerCase().includes(q) ||
+      r.attendee_company.toLowerCase().includes(q) ||
+      r.attendee_pass_number.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="container-x py-8 md:py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="chip text-[0.68rem] tracking-[0.16em]">Exhibitor panel</p>
-            <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl">{exhibitor.booth_name}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Scan attendee QR codes and view your own scan records.</p>
+    <main className="min-h-screen bg-gradient-to-br from-[#f5f2df] via-[#f3f1e7] to-[#eef6e5] text-[#2c3c2a] flex flex-col lg:flex-row overflow-hidden">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-gradient-to-b from-[#03280f] to-[#024221] text-white p-5 flex flex-col justify-between transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-lime-400/20 flex items-center justify-center border border-lime-400/30">
+                <Sparkles className="h-5 w-5 text-lime-300" />
+              </div>
+              <div>
+                <span className="block text-sm font-semibold tracking-wider uppercase text-lime-300">BioEnergy</span>
+                <span className="block text-[10px] tracking-[0.2em] text-white/60">EXHIBITOR ZONE</span>
+              </div>
+            </div>
+            <button className="lg:hidden p-1 text-white/80 hover:text-white" onClick={() => setSidebarOpen(false)}>
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              clearExhibitorSession();
-              navigate("/exhibitor/login", { replace: true });
-            }}
-          >
-            Logout
+          <div className="rounded-2xl bg-white/10 p-4 border border-white/5 shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-full bg-lime-400 text-emerald-950 font-bold flex items-center justify-center text-sm shadow-md">
+                {exhibitor.booth_name.charAt(0).toUpperCase()}
+              </div>
+              <div className="overflow-hidden">
+                <span className="block font-medium truncate text-sm">{exhibitor.booth_name}</span>
+                <span className="block text-xs text-white/60 truncate">{exhibitor.company_name}</span>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px]">
+              <span className="text-white/50">Stall Ref:</span>
+              <span className="font-semibold text-lime-300 uppercase tracking-wider">{exhibitorProfile?.boothNumber || "Pending"}</span>
+            </div>
+          </div>
+
+          <nav className="space-y-2">
+            {[
+              { id: "scan", label: "Scan Dashboard", ico: QrCode },
+              { id: "stall", label: "Stall Setup & Files", ico: Store },
+              { id: "records", label: "Scan Lead Logs", ico: UserCheck },
+            ].map((tab) => {
+              const Icon = tab.ico;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id as any); setSidebarOpen(false); }}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${active ? "bg-lime-400 text-emerald-950 shadow-lg shadow-lime-400/10 scale-[1.02]" : "text-white/80 hover:bg-white/5 hover:text-white"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </div>
+                  {tab.id === "records" && records.length > 0 && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-emerald-950 text-white' : 'bg-white/20 text-white'}`}>
+                      {records.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="pt-4 border-t border-white/5">
+          <Button variant="ghost" onClick={() => { clearExhibitorSession(); navigate("/exhibitor/login", { replace: true }); }} className="w-full h-10 rounded-xl justify-start gap-3 hover:bg-white/5 text-white/80 hover:text-white hover:text-destructive">
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm font-medium">Log out</span>
           </Button>
         </div>
+      </aside>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
-            <h2 className="text-sm font-medium">Stall booking & allocation</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Confirm your stall size, view allocation, and submit any notes.
-            </p>
-
-            <div className="mt-4 grid gap-3 text-sm">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="text-xs text-muted-foreground">Stall size</label>
-                <select
-                  className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-                  value={stallSize}
-                  onChange={(evt) => setStallSize(evt.target.value as "small" | "medium" | "large")}
-                >
-                  <option value="small">Small (10x10)</option>
-                  <option value="medium">Medium (20x20)</option>
-                  <option value="large">Large (30x30)</option>
-                </select>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="text-xs text-muted-foreground">Allocated booth</label>
-                <div className="rounded-md border border-border bg-background px-3 py-2 text-xs">
-                  {exhibitorProfile?.boothNumber || "Pending allocation"}
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-xs text-muted-foreground">Booking notes</label>
-                <textarea
-                  className="min-h-[80px] rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  value={stallNotes}
-                  onChange={(evt) => setStallNotes(evt.target.value)}
-                  placeholder="Share setup requests or booking notes."
-                />
-              </div>
+      <div className="flex-1 flex flex-col min-w-0 max-h-screen overflow-y-auto">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/40 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-md sm:px-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-black/5">
+              <Menu className="h-5 w-5 text-emerald-950" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-emerald-950 capitalize sm:text-xl font-display">
+                {activeTab === "scan" && "Scanner Console"}
+                {activeTab === "stall" && "Booth & Stall Setup"}
+                {activeTab === "records" && "Scanned Attendee Logs"}
+              </h1>
             </div>
-
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Allocation status: {exhibitorProfile?.stallAllocated ? "Allocated" : "Pending"}</span>
-              <Button size="sm" onClick={handleSaveStallBooking} disabled={isLoadingProfile}>
-                Save booking
-              </Button>
-            </div>
-          </article>
-
-          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
-            <h2 className="text-sm font-medium">Payment tracking</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Monitor your payment status and outstanding amounts.</p>
-
-            <div className="mt-4 grid gap-3 text-sm">
-              <div className="flex items-center justify-between rounded-lg border border-border/70 bg-background px-3 py-2">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                  {exhibitorProfile?.paymentStatus || "pending"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border/70 bg-background px-3 py-2">
-                <span className="text-xs text-muted-foreground">Amount</span>
-                <span className="text-sm font-semibold">{exhibitorProfile?.paymentAmount || 0} INR</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Payments are updated by the admin team once verified.
-              </p>
-            </div>
-          </article>
-        </div>
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
-            <h2 className="text-sm font-medium">Booth materials</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Upload your logo and brochure for listing and printing.</p>
-
-            <div className="mt-4 grid gap-4">
-              <div className="grid gap-2">
-                <label className="text-xs text-muted-foreground">Logo upload (PNG/JPG)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="text-xs"
-                  onChange={(evt) => handleFileUpload(evt.target.files?.[0] || null, "logo")}
-                />
-                {logoPreview && (
-                  <img src={logoPreview} alt="Logo preview" className="h-12 w-auto rounded bg-white p-1" />
-                )}
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-xs text-muted-foreground">Brochure upload (PDF/Image)</label>
-                <input
-                  type="file"
-                  accept="application/pdf,image/*"
-                  className="text-xs"
-                  onChange={(evt) => handleFileUpload(evt.target.files?.[0] || null, "brochure")}
-                />
-                {brochurePreview && (
-                  <a
-                    href={brochurePreview}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-primary underline"
-                  >
-                    View uploaded brochure
-                  </a>
-                )}
-              </div>
-            </div>
-          </article>
-
-          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
-            <h2 className="text-sm font-medium">Booth guidelines & manual</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Download booth setup guidelines and exhibitor manual.</p>
-
-            <div className="mt-4 space-y-3">
-              {isLoadingDownloads && <p className="text-xs text-muted-foreground">Loading files...</p>}
-              {!isLoadingDownloads && downloads.length === 0 && (
-                <p className="text-xs text-muted-foreground">No exhibitor files uploaded yet.</p>
-              )}
-              {!isLoadingDownloads && downloads.length > 0 && (
-                <ul className="space-y-2 text-sm">
-                  {downloads.map((file) => (
-                    <li key={file.id} className="flex items-center justify-between rounded-lg border border-border/70 bg-background px-3 py-2">
-                      <span className="text-xs font-medium">{file.title}</span>
-                      <a
-                        href={file.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-primary underline"
-                      >
-                        Download
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </article>
-        </div>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
-            <h2 className="text-sm font-medium">Scan attendee pass</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Allow camera access and point at the attendee QR code.</p>
-
-            <div className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-background p-3">
-              <div id={SCANNER_ELEMENT_ID} />
-            </div>
-
-            {scannerError && <p className="mt-3 text-sm text-destructive">{scannerError}</p>}
-          </article>
-
-          <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-card">
-            <h2 className="text-sm font-medium">Last scanned attendee</h2>
-            {!lastScanned && <p className="mt-3 text-sm text-muted-foreground">No attendee scanned yet.</p>}
-
-            {lastScanned && (
-              <dl className="mt-3 grid grid-cols-1 gap-2 text-sm">
-                <div><span className="text-muted-foreground">Name:</span> {lastScanned.fullName}</div>
-                <div><span className="text-muted-foreground">Email:</span> {lastScanned.email}</div>
-                <div><span className="text-muted-foreground">Phone:</span> {lastScanned.phone}</div>
-                <div><span className="text-muted-foreground">Company:</span> {lastScanned.company}</div>
-                <div><span className="text-muted-foreground">Designation:</span> {lastScanned.designation}</div>
-                <div><span className="text-muted-foreground">Country:</span> {lastScanned.country}</div>
-                <div><span className="text-muted-foreground">Event:</span> {lastScanned.eventName}</div>
-                <div><span className="text-muted-foreground">Pass No:</span> {lastScanned.passNumber}</div>
-              </dl>
-            )}
-          </article>
-        </div>
-
-        <article className="mt-6 overflow-x-auto rounded-2xl border border-border/70 bg-card/70 shadow-card">
-          <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
-            <h2 className="text-sm font-medium">Your scanned attendees</h2>
-            <span className="text-xs text-muted-foreground">{records.length} records</span>
           </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 border border-emerald-200/50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 shadow-sm animate-pulse">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+            Live Sync
+          </span>
+        </header>
 
-          {isLoadingRecords && <p className="px-4 py-4 text-sm text-muted-foreground">Loading scan records...</p>}
+        <div className="p-4 sm:p-6 space-y-6">
+          <section className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+            <article className="rounded-2xl border border-white/50 bg-[#0c4f2a]/95 p-4 text-white shadow-md flex items-center justify-between group hover:scale-[1.01] transition-transform">
+              <div className="space-y-1">
+                <span className="block text-xs uppercase tracking-[0.14em] text-white/70">Total Scans</span>
+                <span className="block text-2xl font-bold font-display">{records.length} leads</span>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center">
+                <UserCheck className="h-6 w-6 text-lime-300" />
+              </div>
+            </article>
 
-          {!isLoadingRecords && (
-            <table className="w-full min-w-[960px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border/50 text-left text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                  <th className="px-4 py-3">Scanned</th>
-                  <th className="px-4 py-3">Pass</th>
-                  <th className="px-4 py-3">Event</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Phone</th>
-                  <th className="px-4 py-3">Company</th>
-                  <th className="px-4 py-3">Country</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.length === 0 && (
-                  <tr>
-                    <td className="px-4 py-6 text-muted-foreground" colSpan={8}>
-                      No scans yet for your booth.
-                    </td>
-                  </tr>
-                )}
+            <article className="rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-all hover:shadow-md">
+              <div className="space-y-1">
+                <span className="block text-xs uppercase tracking-[0.14em] text-muted-foreground">Booth Number</span>
+                <span className="block text-xl font-bold font-display text-emerald-950 uppercase">{exhibitorProfile?.boothNumber || "Pending"}</span>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <Store className="h-6 w-6 text-emerald-800" />
+              </div>
+            </article>
 
-                {records.map((record) => (
-                  <tr key={record.id} className="border-b border-border/30 last:border-b-0">
-                    <td className="px-4 py-3">{new Date(record.scanned_at).toLocaleString()}</td>
-                    <td className="px-4 py-3">{record.attendee_pass_number}</td>
-                    <td className="px-4 py-3">{record.event_name}</td>
-                    <td className="px-4 py-3">{record.attendee_full_name}</td>
-                    <td className="px-4 py-3">{record.attendee_email}</td>
-                    <td className="px-4 py-3">{record.attendee_phone}</td>
-                    <td className="px-4 py-3">{record.attendee_company}</td>
-                    <td className="px-4 py-3">{record.attendee_country}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </article>
-      </section>
+            <article className="rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-all hover:shadow-md">
+              <div className="space-y-1">
+                <span className="block text-xs uppercase tracking-[0.14em] text-muted-foreground">Stall Size</span>
+                <span className="block text-sm font-bold font-display text-emerald-950 capitalize">{stallSize} Stall (10x10)</span>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-emerald-800" />
+              </div>
+            </article>
+
+            <article className="rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-all hover:shadow-md">
+              <div className="space-y-1">
+                <span className="block text-xs uppercase tracking-[0.14em] text-muted-foreground">Payment Tracking</span>
+                <span className="block text-sm font-bold font-display text-[#0c2c17]">{exhibitorProfile?.paymentAmount || 0} INR</span>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-emerald-800" />
+              </div>
+            </article>
+          </section>
+
+          <section className="transition-all duration-300">
+            {activeTab === "scan" && (
+              <div className="grid gap-6 lg:grid-cols-[1fr_420px] items-start">
+                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
+                  <div className="flex items-center justify-between mb-4 border-b border-black/5 pb-3">
+                    <h2 className="text-base font-semibold text-emerald-950 font-display">Live Attendee Scanner</h2>
+                    <QrCode className="h-5 w-5 text-[#0a4d25] animate-pulse" />
+                  </div>
+                  <div className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto">
+                    <div className="absolute inset-6 border border-lime-400/20 rounded-xl pointer-events-none flex items-center justify-center">
+                      <div className="w-48 h-48 border-2 border-lime-400/50 border-dashed rounded-lg animate-pulse" />
+                    </div>
+                    <div id={SCANNER_ELEMENT_ID} className="relative z-10" />
+                  </div>
+                  {scannerError && <div className="mt-4 p-3 bg-red-50 border border-red-200/50 rounded-xl flex items-center gap-2.5 text-xs text-red-600">{scannerError}</div>}
+                </article>
+
+                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
+                  <h2 className="text-base font-semibold text-emerald-950 font-display mb-4 border-b border-black/5 pb-3">Last Scanned Attendee</h2>
+                  {!lastScanned ? (
+                    <div className="py-12 px-6 flex flex-col items-center justify-center text-center space-y-4 rounded-xl border border-dashed border-[#0c4f2a]/15 bg-[#fefefe]/40">
+                      <QrCode className="h-7 w-7 text-[#0a4d25] animate-bounce" />
+                      <p className="text-xs text-muted-foreground">Scan an attendee QR code to see details.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-xl bg-gradient-to-br from-[#043317] to-[#02220e] p-4 text-white shadow-md">
+                        <h3 className="font-bold text-lg">{lastScanned.full_name}</h3>
+                        <p className="text-xs text-white/70">{lastScanned.designation}</p>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex items-center gap-2.5 p-2 bg-[#fbfbfb] rounded-lg border border-black/5">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{lastScanned.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              </div>
+            )}
+
+            {activeTab === "stall" && (
+              <div className="grid gap-6 md:grid-cols-[1fr_1fr] xl:grid-cols-[1.2fr_1fr_1fr] items-start">
+                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md space-y-4">
+                  <h2 className="text-base font-semibold text-emerald-950">Stall Allocation Setup</h2>
+                  <select className="w-full h-10 rounded-xl border border-black/10 bg-white px-3 text-sm" value={stallSize} onChange={(e) => setStallSize(e.target.value)}>
+                    <option value="small">Small (10x10)</option>
+                    <option value="medium">Medium (20x20)</option>
+                    <option value="large">Large (30x30)</option>
+                  </select>
+                  <textarea className="w-full min-h-[120px] rounded-xl border border-black/10 bg-white px-3 py-2 text-sm" value={stallNotes} onChange={(e) => setStallNotes(e.target.value)} />
+                  <Button className="w-full bg-[#08331a]" onClick={handleSaveStallBooking}>Save Changes</Button>
+                </article>
+                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
+                  <h2 className="text-base font-semibold text-emerald-950 mb-4">Booth Materials</h2>
+                  <div className="space-y-4">
+                     <label className="text-xs font-semibold block">Logo (PNG/JPG)</label>
+                     <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, "logo")} />
+                     <label className="text-xs font-semibold block">Brochure (PDF)</label>
+                     <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, "brochure")} />
+                  </div>
+                </article>
+                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
+                  <h2 className="text-base font-semibold text-emerald-950 mb-4">Guidelines</h2>
+                  {downloads.map(f => (
+                    <div key={f.id} className="flex justify-between items-center p-3 mb-2 bg-white rounded-lg border border-black/5">
+                      <span className="text-xs font-medium">{f.title}</span>
+                      <a href={f.fileUrl} target="_blank" rel="noreferrer" className="text-emerald-800 text-xs font-bold underline">Download</a>
+                    </div>
+                  ))}
+                </article>
+              </div>
+            )}
+
+            {activeTab === "records" && (
+              <article className="rounded-2xl border border-white/55 bg-white/80 overflow-hidden shadow-lg backdrop-blur-md">
+                <div className="p-4 border-b border-black/5 flex justify-between gap-3">
+                  <input type="text" className="h-10 rounded-xl border pl-4 text-xs w-64" placeholder="Search leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  <Button onClick={exportMyScans} className="bg-[#08331a]">Export CSV</Button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-[#f5f2e8] border-b">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Company</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRecords.map((r) => (
+                        <tr key={r.id} className="border-b">
+                          <td className="px-4 py-3">{new Date(r.scanned_at).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 font-bold">{r.attendee_full_name}</td>
+                          <td className="px-4 py-3">{r.attendee_email}</td>
+                          <td className="px-4 py-3">{r.attendee_company}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )}
+          </section>
+        </div>
+      </div>
     </main>
   );
 };

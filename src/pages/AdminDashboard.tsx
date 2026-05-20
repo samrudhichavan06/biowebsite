@@ -197,6 +197,19 @@ const AdminDashboard = () => {
     }
   };
 
+  const approveExhibitor = async (id: string, status: 'approved' | 'rejected', comment?: string) => {
+    if (!db) return;
+    try {
+      const ref = doc(db, 'exhibitors', id);
+      await updateDoc(ref, { approval_status: status === 'approved' ? 'approved' : 'rejected', approval_notes: comment || '' });
+      setUsers((prev) => prev.map(u => (u.id === id && u.collection === 'exhibitors' ? { ...u, approval_status: status === 'approved' ? 'approved' : 'rejected', approval_notes: comment || '' } : u)));
+      alert(`Exhibitor ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+    } catch (err) {
+      console.error('Failed approving exhibitor', err);
+      alert('Failed to update exhibitor status');
+    }
+  };
+
   const resendBadgeToUser = async (user: any) => {
     try {
       const userRole = user.collection === "visitors"
@@ -755,6 +768,7 @@ const AdminDashboard = () => {
                             <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border/50">
                               <th className="px-3 py-2">Company</th>
                               <th className="px-3 py-2">Email</th>
+                              <th className="px-3 py-2">Status</th>
                               <th className="px-3 py-2">Stall</th>
                               <th className="px-3 py-2">Payment</th>
                               <th className="px-3 py-2">Materials</th>
@@ -769,6 +783,19 @@ const AdminDashboard = () => {
                                   <div className="text-[11px] text-muted-foreground">{u.contactName || u.contact_name || '—'}</div>
                                 </td>
                                 <td className="px-3 py-2 text-xs">{u.email}</td>
+                                <td className="px-3 py-2 text-xs">
+                                  <div className="flex flex-col gap-1">
+                                    <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-medium ${u.approval_status === 'approved' ? 'bg-green-100 text-green-700' : u.approval_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                      {u.approval_status === 'approved' ? 'Approved' : u.approval_status === 'rejected' ? 'Rejected' : 'Pending'}
+                                    </span>
+                                    {u.approval_status === 'pending' && (
+                                      <div className="flex gap-1">
+                                        <Button size="sm" className="text-[10px] h-6 px-2 bg-green-600 hover:bg-green-700" onClick={() => approveExhibitor(u.id, 'approved', 'Approved by admin')}>Approve</Button>
+                                        <Button size="sm" className="text-[10px] h-6 px-2 bg-red-600 hover:bg-red-700" onClick={() => approveExhibitor(u.id, 'rejected', 'Rejected by admin')}>Reject</Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
                                 <td className="px-3 py-2 text-xs">
                                   <div className="flex flex-col gap-2">
                                     <select

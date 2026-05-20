@@ -13,8 +13,8 @@ const Index = () => (
   <main className="min-h-screen bg-background text-foreground">
     <Nav />
     <Hero />
-    <Zones />
     <Events />
+    <Zones />
     <About />
     <PostShowReportSection />
     <Venue />

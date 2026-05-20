@@ -9,7 +9,12 @@ type ExhibitorSession = {
 const EXHIBITOR_AUTH_STORAGE_KEY = "bioenergy_exhibitor_authenticated";
 
 export function getExhibitorSession(): ExhibitorSession | null {
-  const raw = sessionStorage.getItem(EXHIBITOR_AUTH_STORAGE_KEY);
+  let raw: string | null = null;
+  try {
+    raw = sessionStorage.getItem(EXHIBITOR_AUTH_STORAGE_KEY);
+  } catch {
+    return null;
+  }
   if (!raw) {
     return null;
   }
@@ -17,7 +22,11 @@ export function getExhibitorSession(): ExhibitorSession | null {
   try {
     return JSON.parse(raw) as ExhibitorSession;
   } catch {
-    sessionStorage.removeItem(EXHIBITOR_AUTH_STORAGE_KEY);
+    try {
+      sessionStorage.removeItem(EXHIBITOR_AUTH_STORAGE_KEY);
+    } catch {
+      // ignore storage errors
+    }
     return null;
   }
 }
@@ -27,9 +36,17 @@ export function isExhibitorAuthenticated() {
 }
 
 export function setExhibitorSession(session: ExhibitorSession) {
-  sessionStorage.setItem(EXHIBITOR_AUTH_STORAGE_KEY, JSON.stringify(session));
+  try {
+    sessionStorage.setItem(EXHIBITOR_AUTH_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export function clearExhibitorSession() {
-  sessionStorage.removeItem(EXHIBITOR_AUTH_STORAGE_KEY);
+  try {
+    sessionStorage.removeItem(EXHIBITOR_AUTH_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
 }

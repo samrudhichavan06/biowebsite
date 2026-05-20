@@ -19,6 +19,8 @@ import {
   Globe2,
   Plus,
   Sparkles,
+  Users,
+  Crown,
 } from "lucide-react";
 
 const heroEvents = [
@@ -156,6 +158,45 @@ export const Hero = () => {
         </div>
       </div>
 
+      {/* Mobile registration quick links (above video) */}
+      <div className="container-x block md:hidden mt-8 mb-6">
+        <div className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-semibold">Quick registration</p>
+          <div className="grid grid-cols-1 gap-2.5">
+            <a
+              href="#events"
+              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 hover:border-primary/50"
+            >
+              <span className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                View events
+              </span>
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <a
+              href="#events"
+              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 hover:border-primary/50"
+            >
+              <span className="flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                View events
+              </span>
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <a
+              href="#events"
+              className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm font-medium text-accent transition hover:bg-accent/10 hover:border-accent/50"
+            >
+              <span className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                View events
+              </span>
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Mobile video (above hero on small screens) */}
       <div className="container-x block md:hidden mt-6">
         <video
@@ -263,8 +304,8 @@ export const Hero = () => {
               </p>
               <div className="mt-3 flex items-center justify-between text-xs text-foreground/60">
                 <span>From ₹4,999</span>
-                <Link to={`/register/${current.id}`} className="font-medium text-accent">
-                  Apply →
+                <Link to={`/events/${current.id}`} className="font-medium text-accent">
+                  Details →
                 </Link>
               </div>
             </div>
@@ -394,10 +435,10 @@ export const Hero = () => {
                           ))}
                         </div>
                         <Link
-                          to={`/register/${e.id}`}
+                          to={`/events/${e.id}`}
                           className="inline-flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:opacity-90"
                         >
-                          Register now
+                          View details
                           <ArrowUpRight className="h-4 w-4" />
                         </Link>
                       </div>

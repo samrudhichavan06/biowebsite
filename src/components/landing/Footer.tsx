@@ -33,11 +33,6 @@ export const Footer = () => (
             <div className="text-xs uppercase tracking-[0.2em] opacity-50">Participate</div>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
-                <Link to="/visitor/register" className="underline-offset-4 hover:underline">
-                  Visitor Registration
-                </Link>
-              </li>
-              <li>
                 <Link to="/exhibitor/register" className="underline-offset-4 hover:underline">
                   Exhibitor Registration
                 </Link>
@@ -45,11 +40,6 @@ export const Footer = () => (
               <li>
                 <Link to="/delegate/register" className="underline-offset-4 hover:underline">
                   Delegate Registration
-                </Link>
-              </li>
-              <li>
-                <Link to="/fabricator/register" className="underline-offset-4 hover:underline">
-                  Vendor/Fabricator
                 </Link>
               </li>
             </ul>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { eventCatalog } from "@/lib/events";
 
 export const Events = () => (
-  <section id="events" className="container-x py-18 md:py-24">
+  <section id="events" className="container-x pt-6 md:py-24">
     <div className="flex flex-wrap items-end justify-between gap-6">
       <div className="max-w-2xl">
         <span className="chip">Four events · One venue</span>
@@ -18,12 +18,21 @@ export const Events = () => (
     </div>
 
     <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch">
-      {eventCatalog.map((e) => (
+      {eventCatalog.map((e) => {
+        const isDark = e.tone?.includes("bg-ink") || e.tone?.includes("bg-primary") || e.tone?.includes("bg-accent") || e.tone?.includes("bg-secondary");
+        const primaryBtnClass = isDark
+          ? "h-9 rounded-full px-4 text-sm bg-white/95 text-foreground shadow-sm"
+          : "h-9 rounded-full px-4 text-sm bg-accent text-accent-foreground";
+        const outlineBtnClass = isDark
+          ? "h-9 rounded-full px-4 text-sm bg-transparent border border-white/20 text-white"
+          : "h-9 rounded-full px-4 text-sm border border-border bg-background text-foreground";
+
+        return (
         <article
           key={e.n}
           className={`group relative flex w-full flex-col overflow-hidden rounded-[1.4rem] ${e.tone} shadow-card transition-transform hover:-translate-y-1`}
         >
-          <Link to={`/register/${e.id}`} aria-label={`Open registration page for ${e.name}`}>
+          <Link to={`/events/${e.id}`} aria-label={`Open event page for ${e.name}`}>
             <div className="relative h-44 overflow-hidden md:h-52 lg:h-40 xl:h-44">
               <img
                 src={e.img}
@@ -52,14 +61,18 @@ export const Events = () => (
                 </span>
               ))}
             </div>
-            <div className="pt-2">
-              <Button asChild className="h-9 rounded-full px-4 text-sm">
-                <Link to={`/register/${e.id}`}>Register Now</Link>
+            <div className="pt-2 flex gap-2">
+              <Button asChild className={primaryBtnClass}>
+                <Link to={`/events/${e.id}`}>View details</Link>
+              </Button>
+              <Button asChild variant="outline" className={outlineBtnClass}>
+                <Link to={`/register/${e.id}`}>Register</Link>
               </Button>
             </div>
           </div>
         </article>
-      ))}
+        );
+      })}
     </div>
   </section>
 );

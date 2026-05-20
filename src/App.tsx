@@ -6,14 +6,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import EventRegistration from "./pages/EventRegistration";
+import EventDetails from "./pages/EventDetails";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ExhibitorRegister from "./pages/ExhibitorRegister";
 import ExhibitorLogin from "./pages/ExhibitorLogin";
 import ExhibitorPanel from "./pages/ExhibitorPanel";
-import VisitorRegister from "./pages/VisitorRegister";
 import DelegateRegister from "./pages/DelegateRegister";
-import FabricatorRegister from "./pages/FabricatorRegister";
+// Visitor and Fabricator registration pages removed
 import UnifiedDashboard from "./pages/UnifiedDashboard";
 import DashboardWrapper from "./pages/DashboardWrapper";
 import RegistrationSuccess from "./pages/RegistrationSuccess";
@@ -33,20 +33,17 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/register/:eventId" element={<EventRegistration />} />
+          <Route path="/events/:eventId" element={<EventDetails />} />
           
           {/* Exhibitor Zone */}
           <Route path="/exhibitor/register" element={<ExhibitorRegister />} />
           <Route path="/exhibitor/login" element={<ExhibitorLogin />} />
           <Route path="/exhibitor/panel" element={<ExhibitorPanel />} />
           
-          {/* Visitor Zone */}
-          <Route path="/visitor/register" element={<VisitorRegister />} />
-          
           {/* Delegate/Conference Zone */}
           <Route path="/delegate/register" element={<DelegateRegister />} />
           
-          {/* Fabricator/Vendor Zone */}
-          <Route path="/fabricator/register" element={<FabricatorRegister />} />
+          {/* Visitor and Fabricator registration removed; use Events list */}
           
           {/* Unified Dashboard & Resources */}
           <Route path="/dashboard" element={<DashboardWrapper />} />
