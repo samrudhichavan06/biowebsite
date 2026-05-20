@@ -16,7 +16,6 @@ import {
   Menu,
   X,
   UserCheck,
-  Upload,
   Sparkles,
   ShieldAlert,
   Download,
@@ -104,8 +103,6 @@ const ExhibitorPanel = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [stallSize, setStallSize] = useState<"small" | "medium" | "large">("small");
   const [stallNotes, setStallNotes] = useState("");
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [brochurePreview, setBrochurePreview] = useState<string | null>(null);
   const [downloads, setDownloads] = useState<ExhibitorDownload[]>([]);
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
@@ -213,8 +210,6 @@ const ExhibitorPanel = () => {
           setExhibitorProfile(profile);
           setStallSize(profile.stallSize || "small");
           setStallNotes(profile.additionalNotes || "");
-          setLogoPreview(profile.logoUrl || null);
-          setBrochurePreview(profile.brochureUrl || null);
         } else {
           const profile: ExhibitorProfile = {
             boothName: exhibitor.booth_name,
@@ -288,34 +283,6 @@ const ExhibitorPanel = () => {
     }
   };
 
-  const handleFileUpload = async (file: File | null, type: "logo" | "brochure") => {
-    if (!file || !exhibitor || !isFirebaseConfigured || !db) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = String(reader.result || "");
-      try {
-        const ref = doc(db, COLLECTIONS.EXHIBITORS, exhibitor.id);
-        if (type === "logo") {
-          await updateDoc(ref, { logoUrl: dataUrl, updatedAt: new Date() });
-          setLogoPreview(dataUrl);
-        } else {
-          await updateDoc(ref, { brochureUrl: dataUrl, updatedAt: new Date() });
-          setBrochurePreview(dataUrl);
-        }
-        toast.success("Upload saved", { description: "Your file has been uploaded." });
-      } catch (error) {
-        toast.error("Upload failed", {
-          description: error instanceof Error ? error.message : "Could not upload file",
-        });
-      }
-    };
-
-    reader.readAsDataURL(file);
-  };
-
   const startScanner = async () => {
     if (!authenticated || !exhibitor || isLoadingProfile || exhibitorProfile?.approvalStatus !== "approved") {
       return;
@@ -338,14 +305,6 @@ const ExhibitorPanel = () => {
     }
 
     if (!document.getElementById(SCANNER_ELEMENT_ID)) {
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      stream.getTracks().forEach(track => track.stop());
-    } catch (err) {
-      setScannerError("Camera access required. Please allow camera permissions.");
       return;
     }
 
@@ -449,6 +408,9 @@ const ExhibitorPanel = () => {
       (errorMessage) => {
         if (errorMessage) {
           console.error("Scanner error:", errorMessage);
+          if (errorMessage.toLowerCase().includes("permission") || errorMessage.toLowerCase().includes("notallowed")) {
+            setScannerError("Camera access required. Please allow camera permissions.");
+          }
         }
       },
     );
@@ -465,6 +427,8 @@ const ExhibitorPanel = () => {
       return;
     }
 
+    startScanner();
+
     return () => {
       if (scannerInstanceRef.current) {
         scannerInstanceRef.current.clear().catch(() => {});
@@ -472,7 +436,7 @@ const ExhibitorPanel = () => {
       }
       latestDecodedRef.current = "";
     };
-  }, [activeTab]);
+  }, [activeTab, authenticated, exhibitor, isLoadingProfile, exhibitorProfile]);
 
   if (!authenticated || !exhibitor) {
     return <Navigate to="/exhibitor/login" replace />;
@@ -689,16 +653,6 @@ const ExhibitorPanel = () => {
                      <QrCode className="h-5 w-5 text-[#0a4d25] animate-pulse" />
                    </div>
                    <div className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto min-h-[280px]">
-                     {!scannerInstanceRef.current && (
-                       <div className="absolute inset-0 flex items-center justify-center z-20">
-                         <Button
-                             onClick={startScanner}
-                           className="bg-lime-400 hover:bg-lime-500 text-emerald-950 font-semibold px-6 py-3 rounded-xl shadow-lg text-base"
-                         >
-                           Tap to Scan
-                         </Button>
-                       </div>
-                     )}
                      <div className="absolute inset-6 border border-lime-400/20 rounded-xl pointer-events-none flex items-center justify-center">
                        <div className="w-48 h-48 border-2 border-lime-400/50 border-dashed rounded-lg animate-pulse" />
                      </div>
@@ -746,12 +700,7 @@ const ExhibitorPanel = () => {
                 </article>
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
                   <h2 className="text-base font-semibold text-emerald-950 mb-4">Booth Materials</h2>
-                  <div className="space-y-4">
-                     <label className="text-xs font-semibold block">Logo (PNG/JPG)</label>
-                     <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, "logo")} />
-                     <label className="text-xs font-semibold block">Brochure (PDF)</label>
-                     <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, "brochure")} />
-                  </div>
+                  <p className="text-xs text-muted-foreground">File upload is disabled for this page.</p>
                 </article>
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
                   <h2 className="text-base font-semibold text-emerald-950 mb-4">Guidelines</h2>
