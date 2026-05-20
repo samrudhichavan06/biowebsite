@@ -110,7 +110,6 @@ const ExhibitorPanel = () => {
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
   const latestDecodedRef = useRef<string>("");
-  const [scannerInitTrigger, setScannerInitTrigger] = useState(0);
 
   // Premium dashboard states
   const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records">("scan");
@@ -317,145 +316,154 @@ const ExhibitorPanel = () => {
     reader.readAsDataURL(file);
   };
 
-useEffect(() => {
+  const startScanner = async () => {
     if (!authenticated || !exhibitor || isLoadingProfile || exhibitorProfile?.approvalStatus !== "approved") {
       return;
     }
 
-    // Don't run if scan tab is not active
+    if (scannerInstanceRef.current) {
+      return;
+    }
+
+    setScannerError(null);
+
+    if (!window.isSecureContext) {
+      setScannerError("Camera access requires HTTPS or localhost.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScannerError("Camera is not supported on this device or browser.");
+      return;
+    }
+
+    if (!document.getElementById(SCANNER_ELEMENT_ID)) {
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+      setScannerError("Camera access required. Please allow camera permissions.");
+      return;
+    }
+
+    const scanner = new Html5QrcodeScanner(
+      SCANNER_ELEMENT_ID,
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        disableFlip: false,
+        rememberLastUsedCamera: true,
+      },
+      false,
+    );
+
+    scannerInstanceRef.current = scanner;
+
+    scanner.render(
+      async (decodedText) => {
+        if (!isFirebaseConfigured || !db) {
+          toast.error("Firebase is not configured");
+          return;
+        }
+
+        if (decodedText === latestDecodedRef.current) {
+          return;
+        }
+
+        latestDecodedRef.current = decodedText;
+
+        let payload: Record<string, unknown>;
+        try {
+          payload = JSON.parse(decodedText) as Record<string, unknown>;
+        } catch {
+          toast.error("Invalid QR", { description: "QR code format is not recognized." });
+          return;
+        }
+
+        const attendee: ScannedAttendee = {
+          passNumber: String(payload.pass_number || ""),
+          eventName: String(payload.event_name || ""),
+          fullName: String(payload.full_name || ""),
+          email: String(payload.email || ""),
+          phone: String(payload.phone || ""),
+          company: String(payload.company || ""),
+          designation: String(payload.designation || ""),
+          country: String(payload.country || ""),
+          attendeeType: String(payload.attendee_type || "Visitor"),
+          interests: String(payload.interests || ""),
+        };
+
+        if (!attendee.passNumber || !attendee.fullName || !attendee.email) {
+          toast.error("Incomplete QR", { description: "Required attendee details are missing." });
+          return;
+        }
+
+        try {
+          const docRef = await addDoc(collection(db, "exhibitor_scans"), {
+            exhibitor_id: exhibitor.id,
+            exhibitor_booth_name: exhibitor.booth_name,
+            attendee_pass_number: attendee.passNumber,
+            attendee_full_name: attendee.fullName,
+            attendee_email: attendee.email,
+            attendee_phone: attendee.phone,
+            attendee_company: attendee.company,
+            attendee_designation: attendee.designation,
+            attendee_country: attendee.country,
+            attendee_type: attendee.attendeeType,
+            attendee_interests: attendee.interests,
+            event_name: attendee.eventName,
+            raw_payload: payload,
+            scanned_at: new Date().toISOString(),
+          });
+
+          const newRecord: ScanRecord = {
+            id: docRef.id,
+            scanned_at: new Date().toISOString(),
+            attendee_full_name: attendee.fullName,
+            attendee_email: attendee.email,
+            attendee_phone: attendee.phone,
+            attendee_company: attendee.company,
+            attendee_designation: attendee.designation,
+            attendee_country: attendee.country,
+            attendee_type: attendee.attendeeType,
+            attendee_pass_number: attendee.passNumber,
+            event_name: attendee.eventName,
+          };
+
+          setRecords(prev => [newRecord, ...prev]);
+          setLastScanned(attendee);
+          toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
+
+          setTimeout(() => {
+            latestDecodedRef.current = "";
+          }, 2000);
+        } catch (error) {
+          toast.error("Scan save failed", {
+            description: error instanceof Error ? error.message : "Could not save scan record",
+          });
+        }
+      },
+      (errorMessage) => {
+        if (errorMessage) {
+          console.error("Scanner error:", errorMessage);
+        }
+      },
+    );
+  };
+
+  useEffect(() => {
     if (activeTab !== "scan") {
-      // Clean up scanner when leaving scan tab
       if (scannerInstanceRef.current) {
         scannerInstanceRef.current.clear().catch(() => {});
         scannerInstanceRef.current = null;
       }
+      latestDecodedRef.current = "";
+      setScannerError(null);
       return;
     }
-
-    const startScanner = async () => {
-      // Check if scanner is already running
-      if (scannerInstanceRef.current) {
-        return;
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        stream.getTracks().forEach(track => track.stop());
-      } catch (err) {
-        setScannerError("Camera access required. Please allow camera permissions.");
-        return;
-      }
-
-      if (!document.getElementById(SCANNER_ELEMENT_ID)) {
-        return;
-      }
-
-      const scanner = new Html5QrcodeScanner(
-        SCANNER_ELEMENT_ID,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          disableFlip: false,
-          rememberLastUsedCamera: true,
-        },
-        false,
-      );
-
-      scannerInstanceRef.current = scanner;
-
-      scanner.render(
-        async (decodedText) => {
-          if (!isFirebaseConfigured || !db) {
-            toast.error("Firebase is not configured");
-            return;
-          }
-
-          if (decodedText === latestDecodedRef.current) {
-            return;
-          }
-
-          latestDecodedRef.current = decodedText;
-
-          let payload: Record<string, unknown>;
-          try {
-            payload = JSON.parse(decodedText) as Record<string, unknown>;
-          } catch {
-            toast.error("Invalid QR", { description: "QR code format is not recognized." });
-            return;
-          }
-
-          const attendee: ScannedAttendee = {
-            passNumber: String(payload.pass_number || ""),
-            eventName: String(payload.event_name || ""),
-            fullName: String(payload.full_name || ""),
-            email: String(payload.email || ""),
-            phone: String(payload.phone || ""),
-            company: String(payload.company || ""),
-            designation: String(payload.designation || ""),
-            country: String(payload.country || ""),
-            attendeeType: String(payload.attendee_type || "Visitor"),
-            interests: String(payload.interests || ""),
-          };
-
-          if (!attendee.passNumber || !attendee.fullName || !attendee.email) {
-            toast.error("Incomplete QR", { description: "Required attendee details are missing." });
-            return;
-          }
-
-          try {
-            const docRef = await addDoc(collection(db, "exhibitor_scans"), {
-              exhibitor_id: exhibitor.id,
-              exhibitor_booth_name: exhibitor.booth_name,
-              attendee_pass_number: attendee.passNumber,
-              attendee_full_name: attendee.fullName,
-              attendee_email: attendee.email,
-              attendee_phone: attendee.phone,
-              attendee_company: attendee.company,
-              attendee_designation: attendee.designation,
-              attendee_country: attendee.country,
-              attendee_type: attendee.attendeeType,
-              attendee_interests: attendee.interests,
-              event_name: attendee.eventName,
-              raw_payload: payload,
-              scanned_at: new Date().toISOString(),
-            });
-
-            const newRecord: ScanRecord = {
-              id: docRef.id,
-              scanned_at: new Date().toISOString(),
-              attendee_full_name: attendee.fullName,
-              attendee_email: attendee.email,
-              attendee_phone: attendee.phone,
-              attendee_company: attendee.company,
-              attendee_designation: attendee.designation,
-              attendee_country: attendee.country,
-              attendee_type: attendee.attendeeType,
-              attendee_pass_number: attendee.passNumber,
-              event_name: attendee.eventName,
-            };
-
-            setRecords(prev => [newRecord, ...prev]);
-            setLastScanned(attendee);
-            toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
-            
-            setTimeout(() => {
-              latestDecodedRef.current = "";
-            }, 2000);
-          } catch (error) {
-            toast.error("Scan save failed", {
-              description: error instanceof Error ? error.message : "Could not save scan record",
-            });
-          }
-        },
-        (errorMessage) => {
-          if (errorMessage) {
-            console.error("Scanner error:", errorMessage);
-          }
-        },
-      );
-    };
-
-    startScanner();
 
     return () => {
       if (scannerInstanceRef.current) {
@@ -464,7 +472,7 @@ useEffect(() => {
       }
       latestDecodedRef.current = "";
     };
-  }, [authenticated, exhibitor, isLoadingProfile, exhibitorProfile, activeTab, scannerInitTrigger]);
+  }, [activeTab]);
 
   if (!authenticated || !exhibitor) {
     return <Navigate to="/exhibitor/login" replace />;
@@ -684,7 +692,7 @@ useEffect(() => {
                      {!scannerInstanceRef.current && (
                        <div className="absolute inset-0 flex items-center justify-center z-20">
                          <Button
-                           onClick={() => setScannerInitTrigger(t => t + 1)}
+                             onClick={startScanner}
                            className="bg-lime-400 hover:bg-lime-500 text-emerald-950 font-semibold px-6 py-3 rounded-xl shadow-lg text-base"
                          >
                            Tap to Scan
