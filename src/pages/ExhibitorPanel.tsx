@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
-import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { clearExhibitorSession, getExhibitorSession, isExhibitorAuthenticated } from "@/lib/exhibitorAuth";
@@ -107,6 +106,7 @@ const ExhibitorPanel = () => {
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5Qrcode | null>(null);
   const latestDecodedRef = useRef<string>("");
+  const boothName = exhibitor?.booth_name?.trim() || exhibitor?.company_name?.trim() || "Exhibitor";
 
   // Premium dashboard states
   const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records">("scan");
@@ -313,6 +313,8 @@ const ExhibitorPanel = () => {
       container.innerHTML = "";
     }
 
+    const { Html5Qrcode, Html5QrcodeScanType } = await import("html5-qrcode");
+
     const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
       verbose: false,
     });
@@ -411,6 +413,7 @@ const ExhibitorPanel = () => {
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.777778,
           disableFlip: false,
+          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
         },
       handleScanSuccess,
       () => {
@@ -426,6 +429,7 @@ const ExhibitorPanel = () => {
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.777778,
             disableFlip: false,
+            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
           },
           handleScanSuccess,
           () => {
@@ -439,15 +443,31 @@ const ExhibitorPanel = () => {
     }
   };
 
+  const stopScanner = async () => {
+    const scanner = scannerInstanceRef.current;
+    if (!scanner) {
+      return;
+    }
+
+    scannerInstanceRef.current = null;
+    latestDecodedRef.current = "";
+
+    try {
+      await scanner.stop();
+    } catch {
+      // Ignore stop errors when the scanner is not running yet.
+    }
+
+    try {
+      await scanner.clear();
+    } catch {
+      // Ignore cleanup errors from partially initialized scanners.
+    }
+  };
+
   useEffect(() => {
     if (activeTab !== "scan") {
-      if (scannerInstanceRef.current) {
-        scannerInstanceRef.current.stop().catch(() => {}).finally(() => {
-          scannerInstanceRef.current?.clear().catch(() => {});
-        });
-        scannerInstanceRef.current = null;
-      }
-      latestDecodedRef.current = "";
+      void stopScanner();
       setScannerError(null);
       return;
     }
@@ -455,13 +475,7 @@ const ExhibitorPanel = () => {
     startScanner();
 
     return () => {
-      if (scannerInstanceRef.current) {
-        scannerInstanceRef.current.stop().catch(() => {}).finally(() => {
-          scannerInstanceRef.current?.clear().catch(() => {});
-        });
-        scannerInstanceRef.current = null;
-      }
-      latestDecodedRef.current = "";
+      void stopScanner();
     };
   }, [activeTab, authenticated, exhibitor, isLoadingProfile, exhibitorProfile]);
 
@@ -558,10 +572,10 @@ const ExhibitorPanel = () => {
           <div className="rounded-2xl bg-white/10 p-4 border border-white/5 shadow-inner">
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-full bg-lime-400 text-emerald-950 font-bold flex items-center justify-center text-sm shadow-md">
-                {exhibitor.booth_name.charAt(0).toUpperCase()}
+                {boothName.charAt(0).toUpperCase()}
               </div>
               <div className="overflow-hidden">
-                <span className="block font-medium truncate text-sm">{exhibitor.booth_name}</span>
+                <span className="block font-medium truncate text-sm">{boothName}</span>
                 <span className="block text-xs text-white/60 truncate">{exhibitor.company_name}</span>
               </div>
             </div>
