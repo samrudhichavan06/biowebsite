@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { clearExhibitorSession, getExhibitorSession, isExhibitorAuthenticated } from "@/lib/exhibitorAuth";
@@ -105,7 +105,7 @@ const ExhibitorPanel = () => {
   const [stallNotes, setStallNotes] = useState("");
   const [downloads, setDownloads] = useState<ExhibitorDownload[]>([]);
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
-  const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerInstanceRef = useRef<Html5Qrcode | null>(null);
   const latestDecodedRef = useRef<string>("");
 
   // Premium dashboard states
@@ -308,118 +308,143 @@ const ExhibitorPanel = () => {
       return;
     }
 
-    const scanner = new Html5QrcodeScanner(
-      SCANNER_ELEMENT_ID,
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        disableFlip: false,
-        rememberLastUsedCamera: true,
-      },
-      false,
-    );
+    const container = document.getElementById(SCANNER_ELEMENT_ID);
+    if (container) {
+      container.innerHTML = "";
+    }
+
+    const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+      verbose: false,
+    });
 
     scannerInstanceRef.current = scanner;
 
-    scanner.render(
-      async (decodedText) => {
-        if (!isFirebaseConfigured || !db) {
-          toast.error("Firebase is not configured");
-          return;
-        }
+    const handleScanSuccess = async (decodedText: string) => {
+      if (!isFirebaseConfigured || !db) {
+        toast.error("Firebase is not configured");
+        return;
+      }
 
-        if (decodedText === latestDecodedRef.current) {
-          return;
-        }
+      if (decodedText === latestDecodedRef.current) {
+        return;
+      }
 
-        latestDecodedRef.current = decodedText;
+      latestDecodedRef.current = decodedText;
 
-        let payload: Record<string, unknown>;
-        try {
-          payload = JSON.parse(decodedText) as Record<string, unknown>;
-        } catch {
-          toast.error("Invalid QR", { description: "QR code format is not recognized." });
-          return;
-        }
+      let payload: Record<string, unknown>;
+      try {
+        payload = JSON.parse(decodedText) as Record<string, unknown>;
+      } catch {
+        toast.error("Invalid QR", { description: "QR code format is not recognized." });
+        return;
+      }
 
-        const attendee: ScannedAttendee = {
-          passNumber: String(payload.pass_number || ""),
-          eventName: String(payload.event_name || ""),
-          fullName: String(payload.full_name || ""),
-          email: String(payload.email || ""),
-          phone: String(payload.phone || ""),
-          company: String(payload.company || ""),
-          designation: String(payload.designation || ""),
-          country: String(payload.country || ""),
-          attendeeType: String(payload.attendee_type || "Visitor"),
-          interests: String(payload.interests || ""),
+      const attendee: ScannedAttendee = {
+        passNumber: String(payload.pass_number || ""),
+        eventName: String(payload.event_name || ""),
+        fullName: String(payload.full_name || ""),
+        email: String(payload.email || ""),
+        phone: String(payload.phone || ""),
+        company: String(payload.company || ""),
+        designation: String(payload.designation || ""),
+        country: String(payload.country || ""),
+        attendeeType: String(payload.attendee_type || "Visitor"),
+        interests: String(payload.interests || ""),
+      };
+
+      if (!attendee.passNumber || !attendee.fullName || !attendee.email) {
+        toast.error("Incomplete QR", { description: "Required attendee details are missing." });
+        return;
+      }
+
+      try {
+        const docRef = await addDoc(collection(db, "exhibitor_scans"), {
+          exhibitor_id: exhibitor.id,
+          exhibitor_booth_name: exhibitor.booth_name,
+          attendee_pass_number: attendee.passNumber,
+          attendee_full_name: attendee.fullName,
+          attendee_email: attendee.email,
+          attendee_phone: attendee.phone,
+          attendee_company: attendee.company,
+          attendee_designation: attendee.designation,
+          attendee_country: attendee.country,
+          attendee_type: attendee.attendeeType,
+          attendee_interests: attendee.interests,
+          event_name: attendee.eventName,
+          raw_payload: payload,
+          scanned_at: new Date().toISOString(),
+        });
+
+        const newRecord: ScanRecord = {
+          id: docRef.id,
+          scanned_at: new Date().toISOString(),
+          attendee_full_name: attendee.fullName,
+          attendee_email: attendee.email,
+          attendee_phone: attendee.phone,
+          attendee_company: attendee.company,
+          attendee_designation: attendee.designation,
+          attendee_country: attendee.country,
+          attendee_type: attendee.attendeeType,
+          attendee_pass_number: attendee.passNumber,
+          event_name: attendee.eventName,
         };
 
-        if (!attendee.passNumber || !attendee.fullName || !attendee.email) {
-          toast.error("Incomplete QR", { description: "Required attendee details are missing." });
-          return;
-        }
+        setRecords(prev => [newRecord, ...prev]);
+        setLastScanned(attendee);
+        toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
 
-        try {
-          const docRef = await addDoc(collection(db, "exhibitor_scans"), {
-            exhibitor_id: exhibitor.id,
-            exhibitor_booth_name: exhibitor.booth_name,
-            attendee_pass_number: attendee.passNumber,
-            attendee_full_name: attendee.fullName,
-            attendee_email: attendee.email,
-            attendee_phone: attendee.phone,
-            attendee_company: attendee.company,
-            attendee_designation: attendee.designation,
-            attendee_country: attendee.country,
-            attendee_type: attendee.attendeeType,
-            attendee_interests: attendee.interests,
-            event_name: attendee.eventName,
-            raw_payload: payload,
-            scanned_at: new Date().toISOString(),
-          });
+        setTimeout(() => {
+          latestDecodedRef.current = "";
+        }, 2000);
+      } catch (error) {
+        toast.error("Scan save failed", {
+          description: error instanceof Error ? error.message : "Could not save scan record",
+        });
+      }
+    };
 
-          const newRecord: ScanRecord = {
-            id: docRef.id,
-            scanned_at: new Date().toISOString(),
-            attendee_full_name: attendee.fullName,
-            attendee_email: attendee.email,
-            attendee_phone: attendee.phone,
-            attendee_company: attendee.company,
-            attendee_designation: attendee.designation,
-            attendee_country: attendee.country,
-            attendee_type: attendee.attendeeType,
-            attendee_pass_number: attendee.passNumber,
-            event_name: attendee.eventName,
-          };
-
-          setRecords(prev => [newRecord, ...prev]);
-          setLastScanned(attendee);
-          toast.success("Attendee scanned", { description: `${attendee.fullName} added to your panel.` });
-
-          setTimeout(() => {
-            latestDecodedRef.current = "";
-          }, 2000);
-        } catch (error) {
-          toast.error("Scan save failed", {
-            description: error instanceof Error ? error.message : "Could not save scan record",
-          });
-        }
-      },
-      (errorMessage) => {
-        if (errorMessage) {
-          console.error("Scanner error:", errorMessage);
-          if (errorMessage.toLowerCase().includes("permission") || errorMessage.toLowerCase().includes("notallowed")) {
-            setScannerError("Camera access required. Please allow camera permissions.");
-          }
-        }
+    try {
+      await scanner.start(
+        { facingMode: { exact: "environment" } },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.777778,
+          disableFlip: false,
+        },
+      handleScanSuccess,
+      () => {
+        // Ignore per-frame decode errors to avoid noisy logs.
       },
     );
+    } catch {
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.777778,
+            disableFlip: false,
+          },
+          handleScanSuccess,
+          () => {
+            // Ignore per-frame decode errors to avoid noisy logs.
+          },
+        );
+      } catch {
+        setScannerError("Unable to open back camera. Please allow camera permission and retry.");
+        scannerInstanceRef.current = null;
+      }
+    }
   };
 
   useEffect(() => {
     if (activeTab !== "scan") {
       if (scannerInstanceRef.current) {
-        scannerInstanceRef.current.clear().catch(() => {});
+        scannerInstanceRef.current.stop().catch(() => {}).finally(() => {
+          scannerInstanceRef.current?.clear().catch(() => {});
+        });
         scannerInstanceRef.current = null;
       }
       latestDecodedRef.current = "";
@@ -431,7 +456,9 @@ const ExhibitorPanel = () => {
 
     return () => {
       if (scannerInstanceRef.current) {
-        scannerInstanceRef.current.clear().catch(() => {});
+        scannerInstanceRef.current.stop().catch(() => {}).finally(() => {
+          scannerInstanceRef.current?.clear().catch(() => {});
+        });
         scannerInstanceRef.current = null;
       }
       latestDecodedRef.current = "";
@@ -671,7 +698,7 @@ const ExhibitorPanel = () => {
                   ) : (
                     <div className="space-y-4">
                       <div className="rounded-xl bg-gradient-to-br from-[#043317] to-[#02220e] p-4 text-white shadow-md">
-                        <h3 className="font-bold text-lg">{lastScanned.full_name}</h3>
+                        <h3 className="font-bold text-lg">{lastScanned.fullName}</h3>
                         <p className="text-xs text-white/70">{lastScanned.designation}</p>
                       </div>
                       <div className="space-y-2.5 text-xs">
@@ -687,7 +714,7 @@ const ExhibitorPanel = () => {
             )}
 
             {activeTab === "stall" && (
-              <div className="grid gap-6 md:grid-cols-[1fr_1fr] xl:grid-cols-[1.2fr_1fr_1fr] items-start">
+              <div className="grid gap-6 md:grid-cols-[1fr_1fr] xl:grid-cols-[1.2fr_1fr] items-start">
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md space-y-4">
                   <h2 className="text-base font-semibold text-emerald-950">Stall Allocation Setup</h2>
                   <select className="w-full h-10 rounded-xl border border-black/10 bg-white px-3 text-sm" value={stallSize} onChange={(e) => setStallSize(e.target.value)}>
@@ -697,10 +724,6 @@ const ExhibitorPanel = () => {
                   </select>
                   <textarea className="w-full min-h-[120px] rounded-xl border border-black/10 bg-white px-3 py-2 text-sm" value={stallNotes} onChange={(e) => setStallNotes(e.target.value)} />
                   <Button className="w-full bg-[#08331a]" onClick={handleSaveStallBooking}>Save Changes</Button>
-                </article>
-                <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
-                  <h2 className="text-base font-semibold text-emerald-950 mb-4">Booth Materials</h2>
-                  <p className="text-xs text-muted-foreground">File upload is disabled for this page.</p>
                 </article>
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
                   <h2 className="text-base font-semibold text-emerald-950 mb-4">Guidelines</h2>
