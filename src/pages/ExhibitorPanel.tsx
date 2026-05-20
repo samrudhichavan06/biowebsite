@@ -106,6 +106,7 @@ const ExhibitorPanel = () => {
   const [isLoadingDownloads, setIsLoadingDownloads] = useState(true);
   const scannerInstanceRef = useRef<Html5Qrcode | null>(null);
   const latestDecodedRef = useRef<string>("");
+  const [isScannerActive, setIsScannerActive] = useState(false);
   const boothName = exhibitor?.booth_name?.trim() || exhibitor?.company_name?.trim() || "Exhibitor";
 
   // Premium dashboard states
@@ -293,6 +294,7 @@ const ExhibitorPanel = () => {
     }
 
     setScannerError(null);
+    setIsScannerActive(false);
 
     if (!window.isSecureContext) {
       setScannerError("Camera access requires HTTPS or localhost.");
@@ -360,6 +362,22 @@ const ExhibitorPanel = () => {
       }
 
       try {
+        const existingScanSnapshot = await getDocs(
+          query(
+            collection(db, "exhibitor_scans"),
+            where("exhibitor_id", "==", exhibitor.id),
+            where("attendee_pass_number", "==", attendee.passNumber),
+          ),
+        );
+
+        if (!existingScanSnapshot.empty) {
+          toast.info("Already scanned", {
+            description: `${attendee.fullName} has already been scanned for this exhibitor.`,
+          });
+          latestDecodedRef.current = "";
+          return;
+        }
+
         const docRef = await addDoc(collection(db, "exhibitor_scans"), {
           exhibitor_id: exhibitor.id,
           exhibitor_booth_name: exhibitor.booth_name,
@@ -420,6 +438,7 @@ const ExhibitorPanel = () => {
         // Ignore per-frame decode errors to avoid noisy logs.
       },
     );
+      setIsScannerActive(true);
     } catch {
       try {
         await scanner.start(
@@ -436,9 +455,11 @@ const ExhibitorPanel = () => {
             // Ignore per-frame decode errors to avoid noisy logs.
           },
         );
+        setIsScannerActive(true);
       } catch {
         setScannerError("Unable to open back camera. Please allow camera permission and retry.");
         scannerInstanceRef.current = null;
+        setIsScannerActive(false);
       }
     }
   };
@@ -451,6 +472,7 @@ const ExhibitorPanel = () => {
 
     scannerInstanceRef.current = null;
     latestDecodedRef.current = "";
+    setIsScannerActive(false);
 
     try {
       await scanner.stop();
@@ -703,7 +725,7 @@ const ExhibitorPanel = () => {
                      }}
                      className="overflow-hidden rounded-2xl border border-[#0c4f2a]/15 bg-[#031d0b] p-4 shadow-inner relative max-w-lg mx-auto min-h-[280px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-lime-400/60"
                    >
-                     {!scannerInstanceRef.current && (
+                     {!isScannerActive && (
                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 text-center px-6">
                          <div className="rounded-2xl border border-lime-400/20 bg-[#031d0b]/80 px-5 py-4 text-lime-100 shadow-lg backdrop-blur-sm">
                            <p className="text-sm font-semibold">Tap to open the back camera</p>
