@@ -1,47 +1,31 @@
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-
-const awsRegion = process.env.AWS_REGION;
-const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-const fromEmail = process.env.AWS_SES_FROM_EMAIL;
-
-const sesClient = awsRegion && awsAccessKeyId && awsSecretAccessKey
-  ? new SESv2Client({
-      region: awsRegion,
-      credentials: {
-        accessKeyId: awsAccessKeyId,
-        secretAccessKey: awsSecretAccessKey,
-      },
-    })
-  : null;
-
-const sendJson = (res, status, body) => {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify(body));
-};
-
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+import {
+  applyEmailCorsHeaders,
+  escapeHtml,
+  handleEmailOptionsRequest,
+  parseJsonBody,
+  sendEmail,
+  sendJson,
+} from "./_lib/email.js";
 
 export default async function handler(req, res) {
+  applyEmailCorsHeaders(res);
+
+  if (handleEmailOptionsRequest(req, res)) {
+    return;
+  }
+
   if (req.method !== "POST") {
     return sendJson(res, 405, { error: "Method not allowed" });
   }
 
-  if (!sesClient || !fromEmail) {
-    return sendJson(res, 500, { error: "Email service is not configured" });
+  let parsedBody;
+
+  try {
+    parsedBody = parseJsonBody(req);
+  } catch {
+    return sendJson(res, 400, { error: "Invalid JSON body" });
   }
 
-  const parsedBody =
-    typeof req.body === "string"
-      ? JSON.parse(req.body || "{}")
-      : req.body || {};
   const {
     attendeeEmail,
     attendeeName,
@@ -93,36 +77,17 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    const command = new SendEmailCommand({
-      FromEmailAddress: fromEmail,
-      Destination: {
-        ToAddresses: [attendeeEmail],
-      },
-      Content: {
-        Simple: {
-          Subject: {
-            Data: `Your ${eventName} visitor pass is confirmed`,
-            Charset: "UTF-8",
-          },
-          Body: {
-            Html: {
-              Data: htmlBody,
-              Charset: "UTF-8",
-            },
-            Text: {
-              Data: `Hello ${attendeeName}, your visitor registration for ${eventName} has been received. Pass Number: ${passNumber}.`,
-              Charset: "UTF-8",
-            },
-          },
-        },
-      },
+    const result = await sendEmail({
+      to: attendeeEmail,
+      subject: `Your ${eventName} visitor pass is confirmed`,
+      html: htmlBody,
+      text: `Hello ${attendeeName}, your visitor registration for ${eventName} has been received. Pass Number: ${passNumber}.`,
     });
-
-    const sendResult = await sesClient.send(command);
 
     return sendJson(res, 200, {
       ok: true,
-      emailId: sendResult?.MessageId || null,
+      emailId: result.messageId || null,
+      provider: result.provider,
     });
   } catch (error) {
     return sendJson(res, 500, {
@@ -130,8 +95,8 @@ export default async function handler(req, res) {
       details:
         error instanceof Error
           ? error.message
-          : typeof error === "object" && error && "name" in error && "message" in error
-            ? `${String((error).name)}: ${String((error).message)}`
+          : typeof error === "object" && error && "message" in error
+            ? String(error.message)
             : "Unknown error",
     });
   }

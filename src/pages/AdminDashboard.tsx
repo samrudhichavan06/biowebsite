@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { clearAdminAuthenticated, isAdminAuthenticated } from "@/lib/adminAuth";
 import { eventCatalog } from "@/lib/events";
 import { isFirebaseConfigured, db } from "@/lib/firebase";
+import { COLLECTIONS, ExhibitorPaymentHistory } from "@/lib/collections";
 import {
   CalendarDays,
   ChartColumnBig,
   CircleDollarSign,
+  Download,
   Globe2,
   LayoutGrid,
   LogOut,
@@ -19,6 +21,8 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { AdminExhibitorMessaging } from "@/components/AdminExhibitorMessaging";
+import { AdminFeedbackManagement } from "@/components/AdminFeedbackManagement";
 
 type RegistrationRecord = {
   id: string;
@@ -42,14 +46,18 @@ const AdminDashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState("all");
   const [selectedMenu, setSelectedMenu] = useState<"dashboard" | "analytics" | "users" | "location" | "events">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
+  const [paymentHistoryByExhibitorId, setPaymentHistoryByExhibitorId] = useState<Record<string, ExhibitorPaymentHistory[]>>({});
   const [adminEvents, setAdminEvents] = useState<any[]>([]);
   const [eventsEditor, setEventsEditor] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<'all' | 'exhibitors' | 'visitors' | 'delegates' | 'fabricators'>('all');
+  const [exhibitorSearchQuery, setExhibitorSearchQuery] = useState('');
   const [scannerCode, setScannerCode] = useState('');
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessageBody, setBroadcastMessageBody] = useState('');
   const [broadcastRoles, setBroadcastRoles] = useState<string[]>(['exhibitors','visitors','delegates','fabricators']);
+  const [selectedAdminAction, setSelectedAdminAction] = useState<'messages' | 'feedback' | null>(null);
+  const [activeAdminExhibitor, setActiveAdminExhibitor] = useState<any | null>(null);
 
   const authenticated = isAdminAuthenticated();
 
@@ -122,6 +130,27 @@ const AdminDashboard = () => {
           return 0;
         });
         setUsers(merged);
+
+        try {
+          const paymentHistorySnapshot = await getDocs(
+            query(collection(db, COLLECTIONS.EXHIBITOR_PAYMENT_HISTORY), orderBy("recordedAt", "desc")),
+          );
+          const groupedHistory = paymentHistorySnapshot.docs.reduce<Record<string, ExhibitorPaymentHistory[]>>((acc, paymentDoc) => {
+            const entry = { id: paymentDoc.id, ...(paymentDoc.data() as ExhibitorPaymentHistory) };
+            if (!entry.exhibitorId) {
+              return acc;
+            }
+            if (!acc[entry.exhibitorId]) {
+              acc[entry.exhibitorId] = [];
+            }
+            acc[entry.exhibitorId].push(entry);
+            return acc;
+          }, {});
+          setPaymentHistoryByExhibitorId(groupedHistory);
+        } catch (historyErr) {
+          console.error("Failed loading payment history:", historyErr);
+          setPaymentHistoryByExhibitorId({});
+        }
       } catch (err) {
         console.error("Failed loading users:", err);
       }
@@ -320,6 +349,55 @@ const AdminDashboard = () => {
     if (role === "all") return normalizedUsers;
     return normalizedUsers.filter((u) => u._collection === role);
   }, [normalizedUsers, roleFilter]);
+
+  const exhibitorStats = useMemo(() => {
+    const total = filteredUsers.length;
+    const approved = filteredUsers.filter((u) => String(u.approval_status || u.approvalStatus || "pending") === "approved").length;
+    const pending = filteredUsers.filter((u) => String(u.approval_status || u.approvalStatus || "pending") === "pending").length;
+    const completed = filteredUsers.filter((u) => String(u.paymentStatus || u.payment_status || "pending") === "completed").length;
+    return { total, approved, pending, completed };
+  }, [filteredUsers]);
+
+  const exhibitorCards = useMemo(() => {
+    const q = exhibitorSearchQuery.trim().toLowerCase();
+    if (!q) return filteredUsers;
+    return filteredUsers.filter((u) => {
+      const searchable = [
+        u.companyName,
+        u.company_name,
+        u.contactName,
+        u.contact_name,
+        u.email,
+        u.boothNumber,
+        u.booth_number,
+        u.paymentTransactionId,
+        u.payment_transaction_id,
+      ];
+      return searchable.some((value) => String(value || "").toLowerCase().includes(q));
+    });
+  }, [filteredUsers, exhibitorSearchQuery]);
+
+  const getUserDisplayName = (user: any) => {
+    const companyName = String(user.companyName || user.company_name || user.boothName || user.booth_name || "").trim();
+    if (companyName) {
+      return companyName;
+    }
+
+    const personName = String(`${user.firstName || ""} ${user.lastName || ""}`.trim());
+    if (personName) {
+      return personName;
+    }
+
+    return "Unnamed user";
+  };
+
+  const getUserSecondaryLabel = (user: any) => {
+    if (String(user._collection || "") === "exhibitors") {
+      return String(user.contactName || user.contact_name || user.email || "Exhibitor").trim();
+    }
+
+    return String(user.email || user.phone || "—").trim();
+  };
 
   const totalVisitors = filteredRecords.length;
   const uniqueCompanies = new Set(filteredRecords.map((record) => record.company)).size;
@@ -666,73 +744,112 @@ const AdminDashboard = () => {
 
               {selectedMenu === "users" && (
                 <div className="grid gap-4">
-                  <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-medium">User Management</h2>
+                  <article className="rounded-[28px] border border-[#0f2f1b]/10 bg-white/90 p-4 shadow-sm">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                      <div>
+                        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
+                          <Users className="h-3.5 w-3.5" />
+                          User Management
+                        </div>
+                        <h2 className="mt-3 text-2xl font-semibold text-emerald-950">Manage users in one table</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">Cleaner rows, clearer exhibitor company names, and faster actions.</p>
+                      </div>
                       <span className="text-xs text-muted-foreground">{filteredUsers.length} records</span>
                     </div>
-                    <div className="mt-4 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+
+                    <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex flex-wrap gap-2">
                         {['all','exhibitors','visitors','delegates','fabricators'].map((r) => (
                           <button
                             key={r}
                             onClick={() => setRoleFilter(r as any)}
-                            className={`px-3 py-1 rounded-full text-xs font-medium transition ${roleFilter === r ? 'bg-[#08331a] text-white shadow-sm' : 'bg-white border border-[#0f2f1b]/15 text-[#2c3c2a]'}`}>
+                            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${roleFilter === r ? 'bg-[#08331a] text-white shadow-sm' : 'bg-white border border-[#0f2f1b]/15 text-[#2c3c2a] hover:bg-[#f4f8ef]'}`}>
                             {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
                           </button>
                         ))}
-                        <Button size="sm" onClick={() => exportCSVForRole(roleFilter)}>Export CSV</Button>
+                        <Button size="sm" className="h-8 rounded-full" onClick={() => exportCSVForRole(roleFilter)}>Export CSV</Button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input className="h-9 rounded-full border border-border px-3 text-sm" placeholder="Scan/Code" value={scannerCode} onChange={e => setScannerCode(e.target.value)} />
-                        <Button size="sm" onClick={async () => { const ok = await openScannerAndMark(scannerCode); if (ok) alert('Marked as scanned'); else alert('Not found'); }}>Scan</Button>
+                        <input className="h-10 rounded-full border border-border bg-white px-3 text-sm shadow-sm outline-none focus:border-emerald-400" placeholder="Scan/Code" value={scannerCode} onChange={e => setScannerCode(e.target.value)} />
+                        <Button size="sm" className="h-10 rounded-full" onClick={async () => { const ok = await openScannerAndMark(scannerCode); if (ok) alert('Marked as scanned'); else alert('Not found'); }}>Scan</Button>
                       </div>
                     </div>
-                    <div className="mt-2 overflow-x-auto rounded-xl border border-[#0f2f1b]/10">
-                      <table className="w-full text-sm">
-                        <thead className="bg-[#f5f2e8]">
-                          <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border/50">
-                            <th className="px-3 py-2">Collection</th>
-                            <th className="px-3 py-2">Name / Company</th>
-                            <th className="px-3 py-2">Email</th>
-                            <th className="px-3 py-2">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody key={roleFilter}>
-                          {filteredUsers.map((u) => (
-                            <tr key={`${u._collection}-${u.id}`} className="border-b border-border/30 hover:bg-[#f7f4ea]">
-                              <td className="px-3 py-2 text-xs font-medium">{u._collection}</td>
-                              <td className="px-3 py-2">{u.companyName || `${u.firstName || ''} ${u.lastName || ''}`}</td>
-                              <td className="px-3 py-2 text-xs">{u.email}</td>
-                              <td className="px-3 py-2">
-                                <div className="flex gap-2">
-                                  <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(u.email || '')}>Copy Email</Button>
-                                  <Button size="sm" variant="secondary" onClick={() => resendBadgeToUser(u)}>Resend Badge</Button>
-                                  {u._collection === 'exhibitors' && (
-                                    <Button size="sm" onClick={() => {
-                                      const stall = prompt('Assign stall/booth number', u.boothNumber || u.stallNumber || '');
-                                      if (stall !== null) updateExhibitor(u.id, { boothNumber: stall, stallAllocated: true });
-                                    }}>Assign Stall</Button>
-                                  )}
-                                  {u._collection === 'fabricators' && (
-                                    <>
-                                      <Button size="sm" onClick={() => {
-                                        const comment = prompt('Approval notes (optional)', 'Approved by admin');
-                                        approveFabricator(u.id, 'approved', comment || '');
-                                      }}>Approve</Button>
-                                      <Button size="sm" variant="destructive" onClick={() => {
-                                        const comment = prompt('Rejection reason (optional)', '');
-                                        approveFabricator(u.id, 'rejected', comment || '');
-                                      }}>Reject</Button>
-                                    </>
-                                  )}
-                                  <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(u.id, u.collection || u._collection)}>Delete</Button>
-                                </div>
-                              </td>
+
+                    <div className="mt-5 overflow-hidden rounded-[24px] border border-[#0f2f1b]/10 bg-white shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[880px] text-sm">
+                          <thead className="sticky top-0 z-10 bg-[#f5f2e8]">
+                            <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground border-b border-border/50">
+                              <th className="px-4 py-3">Collection</th>
+                              <th className="px-4 py-3">User</th>
+                              <th className="px-4 py-3">Email / Contact</th>
+                              <th className="px-4 py-3">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody key={roleFilter}>
+                            {filteredUsers.map((u) => {
+                              const displayName = getUserDisplayName(u);
+                              const secondaryLabel = getUserSecondaryLabel(u);
+
+                              return (
+                                <tr key={`${u._collection}-${u.id}`} className="border-b border-border/30 align-top transition hover:bg-[#f7f4ea]/70">
+                                  <td className="px-4 py-4">
+                                    <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
+                                      {u._collection}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#eaf4e3] text-sm font-semibold text-emerald-900">
+                                        {displayName.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-emerald-950">{displayName}</div>
+                                        <div className="text-[11px] text-muted-foreground">
+                                          {u._collection === 'exhibitors' ? secondaryLabel : (u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : 'Registered user')}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4 text-xs text-muted-foreground">
+                                    <div className="space-y-1">
+                                      <div className="font-medium text-emerald-950">{u.email || '—'}</div>
+                                      {u._collection === 'exhibitors' && (
+                                        <div className="break-all">{u.contact_name || u.contactName || 'Company contact not set'}</div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <div className="flex flex-wrap gap-2">
+                                      <Button size="sm" variant="ghost" className="h-8 rounded-full px-3" onClick={() => navigator.clipboard.writeText(u.email || '')}>Copy Email</Button>
+                                      <Button size="sm" variant="secondary" className="h-8 rounded-full px-3" onClick={() => resendBadgeToUser(u)}>Resend Badge</Button>
+                                      {u._collection === 'exhibitors' && (
+                                        <Button size="sm" className="h-8 rounded-full px-3" onClick={() => {
+                                          const stall = prompt('Assign stall/booth number', u.boothNumber || u.stallNumber || '');
+                                          if (stall !== null) updateExhibitor(u.id, { boothNumber: stall, stallAllocated: true });
+                                        }}>Assign Stall</Button>
+                                      )}
+                                      {u._collection === 'fabricators' && (
+                                        <>
+                                          <Button size="sm" className="h-8 rounded-full px-3" onClick={() => {
+                                            const comment = prompt('Approval notes (optional)', 'Approved by admin');
+                                            approveFabricator(u.id, 'approved', comment || '');
+                                          }}>Approve</Button>
+                                          <Button size="sm" variant="destructive" className="h-8 rounded-full px-3" onClick={() => {
+                                            const comment = prompt('Rejection reason (optional)', '');
+                                            approveFabricator(u.id, 'rejected', comment || '');
+                                          }}>Reject</Button>
+                                        </>
+                                      )}
+                                      <Button size="sm" variant="destructive" className="h-8 rounded-full px-3" onClick={() => handleDeleteUser(u.id, u.collection || u._collection)}>Delete</Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                     <div className="mt-4 grid gap-2 grid-cols-1 sm:grid-cols-2">
                       <div className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-3 shadow-sm">
@@ -757,125 +874,319 @@ const AdminDashboard = () => {
                   </article>
 
                   {roleFilter === 'exhibitors' && (
-                    <article className="rounded-2xl border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-medium">Exhibitor Management</h2>
-                        <span className="text-xs text-muted-foreground">{filteredUsers.length} exhibitors</span>
+                    <article className="rounded-[28px] border border-[#0f2f1b]/10 bg-white/90 p-4 shadow-sm">
+                      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-2xl space-y-3">
+                          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
+                            <Shield className="h-3.5 w-3.5" />
+                            Exhibitor Management
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-semibold text-emerald-950">Fast exhibitor control</h2>
+                            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                              A cleaner view for approvals, booth assignment, payment updates, proofs, and history.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {[
+                            { label: "Total", value: exhibitorStats.total },
+                            { label: "Approved", value: exhibitorStats.approved },
+                            { label: "Pending", value: exhibitorStats.pending },
+                            { label: "Paid", value: exhibitorStats.completed },
+                          ].map((item) => (
+                            <div key={item.label} className="rounded-2xl border border-[#0f2f1b]/10 bg-[#f8fbf4] px-4 py-3 shadow-sm">
+                              <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{item.label}</div>
+                              <div className="mt-1 text-xl font-semibold text-emerald-950">{item.value}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="mt-3 overflow-x-auto rounded-xl border border-[#0f2f1b]/10">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border/50">
-                              <th className="px-3 py-2">Company</th>
-                              <th className="px-3 py-2">Email</th>
-                              <th className="px-3 py-2">Status</th>
-                              <th className="px-3 py-2">Stall</th>
-                              <th className="px-3 py-2">Payment</th>
-                              <th className="px-3 py-2">Materials</th>
-                              <th className="px-3 py-2">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredUsers.map((u) => (
-                              <tr key={`exhibitor-${u.id}`} className="border-b border-border/30 hover:bg-[#f7f4ea]">
-                                <td className="px-3 py-2">
-                                  <div className="text-xs font-medium">{u.companyName || u.company_name || '—'}</div>
-                                  <div className="text-[11px] text-muted-foreground">{u.contactName || u.contact_name || '—'}</div>
-                                </td>
-                                <td className="px-3 py-2 text-xs">{u.email}</td>
-                                <td className="px-3 py-2 text-xs">
-                                  <div className="flex flex-col gap-1">
-                                    <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-medium ${u.approval_status === 'approved' ? 'bg-green-100 text-green-700' : u.approval_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                      {u.approval_status === 'approved' ? 'Approved' : u.approval_status === 'rejected' ? 'Rejected' : 'Pending'}
-                                    </span>
-                                    {u.approval_status === 'pending' && (
-                                      <div className="flex gap-1">
-                                        <Button size="sm" className="text-[10px] h-6 px-2 bg-green-600 hover:bg-green-700" onClick={() => approveExhibitor(u.id, 'approved', 'Approved by admin')}>Approve</Button>
-                                        <Button size="sm" className="text-[10px] h-6 px-2 bg-red-600 hover:bg-red-700" onClick={() => approveExhibitor(u.id, 'rejected', 'Rejected by admin')}>Reject</Button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs">
-                                  <div className="flex flex-col gap-2">
-                                    <select
-                                      className="h-8 rounded border border-border bg-background px-2 text-xs"
-                                      value={u.stallSize || 'small'}
-                                      onChange={(e) => updateExhibitor(u.id, { stallSize: e.target.value })}
-                                    >
-                                      <option value="small">Small</option>
-                                      <option value="medium">Medium</option>
-                                      <option value="large">Large</option>
-                                    </select>
-                                    <button
-                                      className="h-8 rounded border border-border bg-background px-2 text-xs"
-                                      onClick={() => {
-                                        const stall = prompt('Assign stall/booth number', u.boothNumber || u.booth_number || '');
-                                        if (stall !== null) updateExhibitor(u.id, { boothNumber: stall, stallAllocated: true });
-                                      }}
-                                    >
-                                      {u.boothNumber || u.booth_number || 'Assign booth'}
-                                    </button>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs">
-                                  <div className="flex flex-col gap-2">
-                                    <select
-                                      className="h-8 rounded border border-border bg-background px-2 text-xs"
-                                      value={u.paymentStatus || 'pending'}
-                                      onChange={(e) => updateExhibitor(u.id, { paymentStatus: e.target.value })}
-                                    >
-                                      <option value="pending">Pending</option>
-                                      <option value="partial">Partial</option>
-                                      <option value="completed">Completed</option>
-                                    </select>
-                                    <button
-                                      className="h-8 rounded border border-border bg-background px-2 text-xs"
-                                      onClick={() => {
-                                        const amount = prompt('Update payment amount', String(u.paymentAmount || u.payment_amount || '0'));
-                                        if (amount !== null) updateExhibitor(u.id, { paymentAmount: Number(amount) || 0 });
-                                      }}
-                                    >
-                                      Amount: {u.paymentAmount || u.payment_amount || 0}
-                                    </button>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs">
-                                  <div className="flex flex-col gap-2">
-                                    {u.logoUrl || u.logo_url ? (
-                                      <a className="text-xs text-primary underline" href={u.logoUrl || u.logo_url} target="_blank" rel="noreferrer">Logo</a>
-                                    ) : (
-                                      <span className="text-[11px] text-muted-foreground">No logo</span>
-                                    )}
-                                    {u.brochureUrl || u.brochure_url ? (
-                                      <a className="text-xs text-primary underline" href={u.brochureUrl || u.brochure_url} target="_blank" rel="noreferrer">Brochure</a>
-                                    ) : (
-                                      <span className="text-[11px] text-muted-foreground">No brochure</span>
-                                    )}
-                                    <label className="flex items-center gap-2 text-[11px]">
-                                      <input
-                                        type="checkbox"
-                                        checked={Boolean(u.exhibitorManualDownloaded || u.exhibitor_manual_downloaded)}
-                                        onChange={(e) => updateExhibitor(u.id, { exhibitorManualDownloaded: e.target.checked })}
-                                      />
-                                      Manual downloaded
-                                    </label>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs">
-                                  <div className="flex flex-col gap-2">
-                                    <Button size="sm" variant="secondary" onClick={() => resendBadgeToUser(u)}>Resend Badge</Button>
-                                    <Button size="sm" variant="ghost" onClick={() => {
-                                      const notes = prompt('Add internal notes', u.additionalNotes || u.additional_notes || '');
-                                      if (notes !== null) updateExhibitor(u.id, { additionalNotes: notes });
-                                    }}>Notes</Button>
-                                  </div>
-                                </td>
+
+                      <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="relative flex-1">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <input
+                            type="text"
+                            value={exhibitorSearchQuery}
+                            onChange={(e) => setExhibitorSearchQuery(e.target.value)}
+                            placeholder="Search company, contact, booth, email, transaction ID"
+                            className="h-11 w-full rounded-2xl border border-[#0f2f1b]/10 bg-[#fafcf8] pl-10 pr-4 text-sm outline-none transition focus:border-emerald-400"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-11 rounded-2xl border border-[#0f2f1b]/10 bg-white px-4 text-sm"
+                          onClick={() => setExhibitorSearchQuery("")}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+
+                      <div className="mt-6 overflow-hidden rounded-[24px] border border-[#0f2f1b]/10 bg-white shadow-sm">
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[1400px] text-sm">
+                            <thead className="sticky top-0 z-10 bg-[#f5f2e8]">
+                              <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground border-b border-border/50">
+                                <th className="px-4 py-3">Exhibitor</th>
+                                <th className="px-4 py-3">Booth</th>
+                                <th className="px-4 py-3">Approval</th>
+                                <th className="px-4 py-3">Payment</th>
+                                <th className="px-4 py-3">Proof & History</th>
+                                <th className="px-4 py-3">Materials</th>
+                                <th className="px-4 py-3">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {exhibitorCards.map((u) => {
+                                const companyName = u.companyName || u.company_name || u.boothName || u.booth_name || "Unnamed exhibitor";
+                                const contactName = u.contactName || u.contact_name || "—";
+                                const boothNumber = u.boothNumber || u.booth_number || "Unassigned";
+                                const stallValue = u.stallSize || u.stall_size || "small";
+                                const paymentStatus = u.paymentStatus || u.payment_status || "pending";
+                                const approvalStatus = u.approval_status || "pending";
+                                const paymentAmount = u.paymentAmount || u.payment_amount || 0;
+                                const paymentHistory = paymentHistoryByExhibitorId[u.id] || [];
+                                const manualDownloaded = Boolean(u.exhibitorManualDownloaded || u.exhibitor_manual_downloaded);
+                                const currentProofUrl = u.paymentProofUrl || u.payment_proof_url || "";
+                                const currentTxnId = u.paymentTransactionId || u.payment_transaction_id || "";
+
+                                return (
+                                  <tr key={`exhibitor-${u.id}`} className="border-b border-border/30 align-top transition hover:bg-[#f7f4ea]/70">
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-900 text-sm font-semibold text-white shadow-sm">
+                                          {String(companyName).charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                          <div className="font-medium text-emerald-950">{companyName}</div>
+                                          <div className="text-[11px] text-muted-foreground">{contactName}</div>
+                                          <div className="mt-1 flex flex-wrap gap-2">
+                                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-800">{u.email}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="space-y-2">
+                                        <select
+                                          className="h-9 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                                          value={stallValue}
+                                          onChange={(e) => updateExhibitor(u.id, { stallSize: e.target.value })}
+                                        >
+                                          <option value="small">Small</option>
+                                          <option value="medium">Medium</option>
+                                          <option value="large">Large</option>
+                                        </select>
+                                        <button
+                                          className="h-9 w-full rounded-xl border border-border bg-background px-3 text-left text-sm"
+                                          onClick={() => {
+                                            const stall = prompt('Assign stall/booth number', boothNumber === 'Unassigned' ? '' : boothNumber);
+                                            if (stall !== null) updateExhibitor(u.id, { boothNumber: stall, stallAllocated: true });
+                                          }}
+                                        >
+                                          {boothNumber === 'Unassigned' ? 'Assign booth number' : `Booth: ${boothNumber}`}
+                                        </button>
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="space-y-2">
+                                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${approvalStatus === 'approved' ? 'bg-green-100 text-green-700' : approvalStatus === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                          {approvalStatus === 'approved' ? 'Approved' : approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                                        </span>
+                                        {approvalStatus === 'pending' ? (
+                                          <div className="flex flex-wrap gap-2">
+                                            <Button size="sm" className="h-8 rounded-full bg-green-600 px-3 hover:bg-green-700" onClick={() => approveExhibitor(u.id, 'approved', 'Approved by admin')}>Approve</Button>
+                                            <Button size="sm" className="h-8 rounded-full bg-red-600 px-3 hover:bg-red-700" onClick={() => approveExhibitor(u.id, 'rejected', 'Rejected by admin')}>Reject</Button>
+                                          </div>
+                                        ) : (
+                                          <select
+                                            className="h-9 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                                            value={approvalStatus}
+                                            onChange={(e) => approveExhibitor(u.id, e.target.value as 'approved' | 'rejected', `${e.target.value === 'approved' ? 'Approved' : 'Rejected'} by admin`)}
+                                          >
+                                            <option value="approved">Approved</option>
+                                            <option value="rejected">Rejected</option>
+                                          </select>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="space-y-2">
+                                        <select
+                                          className="h-9 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                                          value={paymentStatus}
+                                          onChange={(e) => updateExhibitor(u.id, { paymentStatus: e.target.value })}
+                                        >
+                                          <option value="pending">Pending</option>
+                                          <option value="partial">Partial</option>
+                                          <option value="completed">Completed</option>
+                                        </select>
+                                        <button
+                                          className="h-9 w-full rounded-xl border border-border bg-background px-3 text-left text-sm"
+                                          onClick={() => {
+                                            const amount = prompt('Update payment amount', String(paymentAmount));
+                                            if (amount !== null) updateExhibitor(u.id, { paymentAmount: Number(amount) || 0 });
+                                          }}
+                                        >
+                                          Amount: {paymentAmount} INR
+                                        </button>
+                                        {currentTxnId && <span className="text-[11px] text-muted-foreground break-all">Txn: {currentTxnId}</span>}
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="space-y-2">
+                                        {currentProofUrl ? (
+                                          <a className="inline-flex items-center gap-1 text-xs font-medium text-primary underline" href={currentProofUrl} target="_blank" rel="noreferrer" download={`${String(companyName).replace(/\s+/g, '_')}_payment_proof.png`}>
+                                            <Download className="h-3.5 w-3.5" />
+                                            Current proof
+                                          </a>
+                                        ) : (
+                                          <span className="text-[11px] text-muted-foreground">No proof uploaded</span>
+                                        )}
+                                        {currentTxnId && <p className="text-[11px] text-muted-foreground break-all">Latest transaction: {currentTxnId}</p>}
+                                        <details className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3">
+                                          <summary className="cursor-pointer text-xs font-semibold text-emerald-900">History ({paymentHistory.length})</summary>
+                                          <div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
+                                            {paymentHistory.length === 0 ? (
+                                              <p className="text-[11px] text-muted-foreground">No previous payment updates yet.</p>
+                                            ) : (
+                                              paymentHistory.map((entry) => (
+                                                <div key={entry.id} className="rounded-xl border border-emerald-100 bg-white p-2.5 shadow-sm">
+                                                  <div className="flex items-start justify-between gap-3">
+                                                    <div className="space-y-1">
+                                                      <p className="text-[11px] font-semibold text-emerald-950">{new Date(entry.recordedAt).toLocaleString()}</p>
+                                                      <p className="text-[11px] text-muted-foreground break-all">Txn: {entry.transactionId}</p>
+                                                      <p className="text-[11px] text-muted-foreground">Amount: {entry.paymentAmount} INR</p>
+                                                    </div>
+                                                    {entry.proofUrl && (
+                                                      <a className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 underline" href={entry.proofUrl} target="_blank" rel="noreferrer" download={`${String(companyName).replace(/\s+/g, '_')}_payment_${entry.id}.png`}>
+                                                        <Download className="h-3 w-3" />
+                                                        Proof
+                                                      </a>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))
+                                            )}
+                                          </div>
+                                        </details>
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="space-y-3">
+                                        <div className="flex items-center justify-between gap-3 rounded-xl border border-black/5 bg-white px-3 py-2">
+                                          <span className="text-xs text-muted-foreground">Logo</span>
+                                          {u.logoUrl || u.logo_url ? <a className="text-xs font-medium text-primary underline" href={u.logoUrl || u.logo_url} target="_blank" rel="noreferrer">Open</a> : <span className="text-xs text-muted-foreground">No logo</span>}
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3 rounded-xl border border-black/5 bg-white px-3 py-2">
+                                          <span className="text-xs text-muted-foreground">Brochure</span>
+                                          {u.brochureUrl || u.brochure_url ? <a className="text-xs font-medium text-primary underline" href={u.brochureUrl || u.brochure_url} target="_blank" rel="noreferrer">Open</a> : <span className="text-xs text-muted-foreground">No brochure</span>}
+                                        </div>
+                                        <label className="flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-xs">
+                                          <input
+                                            type="checkbox"
+                                            checked={manualDownloaded}
+                                            onChange={(e) => updateExhibitor(u.id, { exhibitorManualDownloaded: e.target.checked })}
+                                          />
+                                          Manual downloaded
+                                        </label>
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="flex flex-col gap-2">
+                                        <Button size="sm" onClick={() => {
+                                          // open messaging modal/drawer
+                                          setActiveAdminExhibitor(u);
+                                          setSelectedAdminAction('messages');
+                                          const win = window.open("", `_admin_msg_${id}`, "width=900,height=700");
+                                          if (!win) return;
+                                          setSelectedAdminAction('messages');
+                                          // Minimal wrapper - full SPA integration requires router/modal wiring
+                                          win.document.body.innerHTML = `<div id=\"admin-root\"></div>`;
+                                          // Inform admin they should use Admin Dashboard UI; this is temporary fallback
+                                        }} className="h-8 rounded-full">Manage Messages</Button>
+                                        <Button size="sm" variant="ghost" onClick={() => {
+                                          const id = u.id;
+                                          const name = getUserDisplayName(u);
+                                          const win = window.open("", `_admin_feedback_${id}`, "width=900,height=700");
+                                          if (!win) return;
+                                          win.document.title = `Feedback - ${name}`;
+                                          win.document.body.innerHTML = `<div id=\"admin-root\"></div>`;
+                                        }} className="h-8 rounded-full">Manage Feedback</Button>
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="flex flex-col gap-2">
+                                        <Button size="sm" variant="secondary" className="h-8 rounded-full px-3" onClick={() => resendBadgeToUser(u)}>Resend Badge</Button>
+                                        <Button size="sm" variant="ghost" className="h-8 rounded-full px-3" onClick={() => {
+                                          const notes = prompt('Add internal notes', u.additionalNotes || u.additional_notes || '');
+                                          if (notes !== null) updateExhibitor(u.id, { additionalNotes: notes });
+                                        }}>Notes</Button>
+                                        <Button size="sm" variant="destructive" className="h-8 rounded-full px-3" onClick={() => handleDeleteUser(u.id, u.collection || u._collection)}>Delete</Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
+
+                      {exhibitorCards.length === 0 && (
+                        <div className="mt-6 rounded-[24px] border border-dashed border-[#0f2f1b]/15 bg-[#fafcf8] px-6 py-10 text-center">
+                          <p className="text-sm font-semibold text-emerald-950">No exhibitors found</p>
+                          <p className="mt-2 text-xs text-muted-foreground">Try a different search term or clear the search box.</p>
+                        </div>
+                      )}
+
+                      {activeAdminExhibitor && selectedAdminAction && (
+                        <div className="mt-6 rounded-[24px] border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <h2 className="text-xl font-semibold text-emerald-950">
+                                {selectedAdminAction === 'messages' ? 'Exhibitor Messaging' : 'Feedback & Approvals'} for {getUserDisplayName(activeAdminExhibitor)}
+                              </h2>
+                              <p className="text-sm text-muted-foreground">
+                                {selectedAdminAction === 'messages'
+                                  ? 'View and send messages directly to this exhibitor.'
+                                  : 'Review document approvals, add feedback, and track status for this exhibitor.'}
+                              </p>
+                            </div>
+                            <Button size="sm" variant="ghost" onClick={() => {
+                              setSelectedAdminAction(null);
+                              setActiveAdminExhibitor(null);
+                            }}>
+                              Close panel
+                            </Button>
+                          </div>
+
+                          <div className="mt-4">
+                            {selectedAdminAction === 'messages' ? (
+                              <AdminExhibitorMessaging
+                                exhibitorId={activeAdminExhibitor.id}
+                                exhibitorName={getUserDisplayName(activeAdminExhibitor)}
+                              />
+                            ) : (
+                              <AdminFeedbackManagement
+                                exhibitorId={activeAdminExhibitor.id}
+                                exhibitorName={getUserDisplayName(activeAdminExhibitor)}
+                                adminId="admin"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </article>
                   )}
                 </div>

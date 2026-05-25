@@ -1,33 +1,11 @@
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-
-const awsRegion = process.env.AWS_REGION;
-const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-const fromEmail = process.env.AWS_SES_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
-
-const sesClient = awsRegion && awsAccessKeyId && awsSecretAccessKey
-  ? new SESv2Client({
-      region: awsRegion,
-      credentials: {
-        accessKeyId: awsAccessKeyId,
-        secretAccessKey: awsSecretAccessKey,
-      },
-    })
-  : null;
-
-const sendJson = (res, status, body) => {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify(body));
-};
-
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+import {
+  applyEmailCorsHeaders,
+  escapeHtml,
+  handleEmailOptionsRequest,
+  parseJsonBody,
+  sendEmail,
+  sendJson,
+} from "./_lib/email.js";
 
 function getEmailTemplate(name, registrationCode, role, qrCodeUrl) {
   const roleLabel = {
@@ -97,17 +75,9 @@ function getEmailTemplate(name, registrationCode, role, qrCodeUrl) {
 }
 
 export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-  );
+  applyEmailCorsHeaders(res);
 
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
+  if (handleEmailOptionsRequest(req, res)) {
     return;
   }
 
@@ -115,8 +85,13 @@ export default async function handler(req, res) {
     return sendJson(res, 405, { error: "Method not allowed" });
   }
 
-  const parsedBody =
-    typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+  let parsedBody;
+
+  try {
+    parsedBody = parseJsonBody(req);
+  } catch {
+    return sendJson(res, 400, { error: "Invalid JSON body" });
+  }
 
   const { email, name, qrCodeUrl, registrationCode, role, badgeId } = parsedBody;
 
@@ -127,54 +102,34 @@ export default async function handler(req, res) {
     });
   }
 
-  // Check if email service is configured
-  if (!sesClient || !fromEmail) {
-    console.warn("Email service not configured. Badge email would have been sent to:", email);
-    // Return success anyway for development
-    return sendJson(res, 200, {
-      success: true,
-      message: "Badge email queued (service not configured in this environment)",
-      badgeId,
-    });
-  }
-
   try {
     const htmlContent = getEmailTemplate(name, registrationCode, role, qrCodeUrl);
 
-    const command = new SendEmailCommand({
-      FromEmailAddress: fromEmail,
-      Destination: {
-        ToAddresses: [email],
-      },
-      Content: {
-        Simple: {
-          Subject: {
-            Data: `Your Bioenergy Expo 2026 Badge - ${registrationCode}`,
-            Charset: "UTF-8",
-          },
-          Body: {
-            Html: {
-              Data: htmlContent,
-              Charset: "UTF-8",
-            },
-          },
-        },
-      },
+    const result = await sendEmail({
+      to: email,
+      subject: `Your Bioenergy Expo 2026 Badge - ${registrationCode}`,
+      html: htmlContent,
+      text: `Dear ${name}, your Bioenergy Expo 2026 badge is ready. Registration code: ${registrationCode}.`,
     });
-
-    await sesClient.send(command);
 
     return sendJson(res, 200, {
       success: true,
       message: "Badge email sent successfully",
       badgeId,
       email,
+      emailId: result.messageId || null,
+      provider: result.provider,
     });
   } catch (error) {
     console.error("Error sending badge email:", error);
     return sendJson(res, 500, {
       error: "Failed to send badge email",
-      details: error.message,
+      details:
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error && "message" in error
+            ? String(error.message)
+            : "Unknown error",
     });
   }
 }

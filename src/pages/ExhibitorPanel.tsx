@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { clearExhibitorSession, getExhibitorSession, isExhibitorAuthenticated } from "@/lib/exhibitorAuth";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { addDoc, collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { COLLECTIONS } from "@/lib/collections";
+import { COLLECTIONS, ExhibitorPaymentHistory, getExhibitorPaymentHistory } from "@/lib/collections";
 import {
   QrCode,
   Store,
@@ -32,7 +32,10 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  Save,
 } from "lucide-react";
+import { ExhibitorMessages } from "@/components/ExhibitorMessages";
+import { ExhibitorStatusTracker } from "@/components/ExhibitorStatusTracker";
 
 type ScannedAttendee = {
   passNumber: string;
@@ -68,6 +71,8 @@ type ExhibitorProfile = {
   stallSize?: "small" | "medium" | "large";
   paymentStatus?: "pending" | "partial" | "completed";
   paymentAmount?: number;
+  paymentProofUrl?: string;
+  paymentTransactionId?: string;
   logoUrl?: string;
   brochureUrl?: string;
   exhibitorManualDownloaded?: boolean;
@@ -107,10 +112,16 @@ const ExhibitorPanel = () => {
   const scannerInstanceRef = useRef<Html5Qrcode | null>(null);
   const latestDecodedRef = useRef<string>("");
   const [isScannerActive, setIsScannerActive] = useState(false);
+  const [paymentTransactionId, setPaymentTransactionId] = useState("");
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+  const paymentTransactionDirtyRef = useRef(false);
+  const paymentProofDirtyRef = useRef(false);
+  const [paymentHistory, setPaymentHistory] = useState<ExhibitorPaymentHistory[]>([]);
+  const [isLoadingPaymentHistory, setIsLoadingPaymentHistory] = useState(true);
   const boothName = exhibitor?.booth_name?.trim() || exhibitor?.company_name?.trim() || "Exhibitor";
 
   // Premium dashboard states
-  const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "stall" | "records" | "messages">("scan");
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -202,6 +213,8 @@ const ExhibitorPanel = () => {
             stallSize: data.stallSize || data.stall_size || "small",
             paymentStatus: data.paymentStatus || data.payment_status || "pending",
             paymentAmount: Number(data.paymentAmount || data.payment_amount || 0),
+            paymentProofUrl: data.paymentProofUrl || data.payment_proof_url || "",
+            paymentTransactionId: data.paymentTransactionId || data.payment_transaction_id || "",
             logoUrl: data.logoUrl || data.logo_url || "",
             brochureUrl: data.brochureUrl || data.brochure_url || "",
             exhibitorManualDownloaded: Boolean(data.exhibitorManualDownloaded || data.exhibitor_manual_downloaded),
@@ -211,12 +224,24 @@ const ExhibitorPanel = () => {
           setExhibitorProfile(profile);
           setStallSize(profile.stallSize || "small");
           setStallNotes(profile.additionalNotes || "");
+          if (!paymentTransactionDirtyRef.current) {
+            setPaymentTransactionId(profile.paymentTransactionId || "");
+          }
+          if (!paymentProofDirtyRef.current) {
+            setPaymentProofPreview(profile.paymentProofUrl || null);
+          }
         } else {
           const profile: ExhibitorProfile = {
             boothName: exhibitor.booth_name,
             approvalStatus: "pending",
           };
           setExhibitorProfile(profile);
+          if (!paymentTransactionDirtyRef.current) {
+            setPaymentTransactionId("");
+          }
+          if (!paymentProofDirtyRef.current) {
+            setPaymentProofPreview(null);
+          }
         }
       } catch (error) {
         toast.error("Could not load exhibitor profile", {
@@ -228,6 +253,28 @@ const ExhibitorPanel = () => {
     };
 
     loadProfile();
+  }, [exhibitor]);
+
+  useEffect(() => {
+    const loadPaymentHistory = async () => {
+      if (!exhibitor || !isFirebaseConfigured || !db) {
+        setIsLoadingPaymentHistory(false);
+        return;
+      }
+
+      try {
+        const history = await getExhibitorPaymentHistory(exhibitor.id);
+        setPaymentHistory(history);
+      } catch (error) {
+        toast.error("Could not load payment history", {
+          description: error instanceof Error ? error.message : "Failed to load payment records",
+        });
+      } finally {
+        setIsLoadingPaymentHistory(false);
+      }
+    };
+
+    loadPaymentHistory();
   }, [exhibitor]);
 
   useEffect(() => {
@@ -280,6 +327,70 @@ const ExhibitorPanel = () => {
     } catch (error) {
       toast.error("Could not save stall booking", {
         description: error instanceof Error ? error.message : "Failed to update booking",
+      });
+    }
+  };
+
+  const handlePaymentProofSelection = (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      paymentProofDirtyRef.current = true;
+      setPaymentProofPreview(dataUrl);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleSavePaymentDetails = async () => {
+    if (!exhibitor || !isFirebaseConfigured || !db) {
+      return;
+    }
+
+    const trimmedTransactionId = paymentTransactionId.trim();
+    if (!trimmedTransactionId) {
+      toast.error("Transaction ID required", { description: "Please enter your payment transaction ID." });
+      return;
+    }
+
+    const proofUrl = paymentProofPreview || exhibitorProfile?.paymentProofUrl || "";
+    if (!proofUrl) {
+      toast.error("Payment proof required", { description: "Please upload a payment screenshot before updating payment." });
+      return;
+    }
+
+    try {
+      const ref = doc(db, COLLECTIONS.EXHIBITORS, exhibitor.id);
+      const historyRecord: Omit<ExhibitorPaymentHistory, "id"> = {
+        exhibitorId: exhibitor.id,
+        boothName,
+        companyName: exhibitor.company_name || exhibitor.booth_name,
+        paymentAmount: Number(exhibitorProfile?.paymentAmount || 0),
+        paymentStatus: exhibitorProfile?.paymentStatus || "pending",
+        transactionId: trimmedTransactionId,
+        proofUrl,
+        recordedAt: new Date().toISOString(),
+        source: "exhibitor",
+      };
+
+      const historyRef = await addDoc(collection(db, COLLECTIONS.EXHIBITOR_PAYMENT_HISTORY), historyRecord);
+      await updateDoc(ref, {
+        paymentTransactionId: trimmedTransactionId,
+        paymentProofUrl: proofUrl,
+        updatedAt: new Date(),
+      });
+      paymentTransactionDirtyRef.current = false;
+      paymentProofDirtyRef.current = false;
+      setExhibitorProfile((prev) => prev ? { ...prev, paymentTransactionId: trimmedTransactionId, paymentProofUrl: proofUrl } : prev);
+      setPaymentHistory((prev) => [{ id: historyRef.id, ...historyRecord }, ...prev]);
+      toast.success("Payment updated", { description: "Your payment record has been saved to history." });
+    } catch (error) {
+      toast.error("Payment update failed", {
+        description: error instanceof Error ? error.message : "Could not save payment details",
       });
     }
   };
@@ -609,6 +720,7 @@ const ExhibitorPanel = () => {
             {[
               { id: "scan", label: "Scan Dashboard", ico: QrCode },
               { id: "stall", label: "Stall Setup & Files", ico: Store },
+              { id: "messages", label: "Messages", ico: Mail },
               { id: "records", label: "Scan Lead Logs", ico: UserCheck },
             ].map((tab) => {
               const Icon = tab.ico;
@@ -652,6 +764,7 @@ const ExhibitorPanel = () => {
               <h1 className="text-lg font-bold text-emerald-950 capitalize sm:text-xl font-display">
                 {activeTab === "scan" && "Scanner Console"}
                 {activeTab === "stall" && "Booth & Stall Setup"}
+                {activeTab === "messages" && "Messages & Status"}
                 {activeTab === "records" && "Scanned Attendee Logs"}
               </h1>
             </div>
@@ -768,15 +881,181 @@ const ExhibitorPanel = () => {
 
             {activeTab === "stall" && (
               <div className="grid gap-6 md:grid-cols-[1fr_1fr] xl:grid-cols-[1.2fr_1fr] items-start">
+                <article className="rounded-2xl border border-white/55 bg-white/80 p-6 shadow-lg backdrop-blur-md space-y-6">
+                  <div className="border-b border-black/5 pb-4">
+                    <h2 className="text-lg font-bold text-emerald-950 flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-emerald-600" />
+                      Your Stall Allocation
+                    </h2>
+                    <p className="text-xs text-gray-600 mt-1">Assigned by admin team</p>
+                  </div>
+
+                  {exhibitorProfile?.stallAllocated ? (
+                    <div className="space-y-5">
+                      <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50/60 p-4">
+                        <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wide">Allocation Status</p>
+                        <div className="flex items-center gap-3 mt-3">
+                          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-emerald-950">Stall Allocated</p>
+                            <p className="text-xs text-emerald-700">Your booth is confirmed</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-emerald-200 bg-white p-4">
+                          <p className="text-[11px] text-gray-600 font-semibold uppercase">Booth Number</p>
+                          <p className="text-2xl font-bold text-emerald-950 mt-2">{exhibitorProfile?.boothNumber || "—"}</p>
+                        </div>
+
+                        <div className="rounded-xl border border-emerald-200 bg-white p-4">
+                          <p className="text-[11px] text-gray-600 font-semibold uppercase">Stall Size</p>
+                          <p className="text-sm font-bold text-emerald-950 mt-2 capitalize">{exhibitorProfile?.stallSize || "—"}</p>
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            {exhibitorProfile?.stallSize === "small" && "10 × 10 ft"}
+                            {exhibitorProfile?.stallSize === "medium" && "20 × 20 ft"}
+                            {exhibitorProfile?.stallSize === "large" && "30 × 30 ft"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                        <p className="text-[11px] text-amber-700 font-semibold uppercase">Booth Details</p>
+                        <div className="mt-3 space-y-2">
+                          {exhibitorProfile?.additionalNotes ? (
+                            <p className="text-sm text-amber-900">{exhibitorProfile.additionalNotes}</p>
+                          ) : (
+                            <p className="text-sm text-amber-700 italic">No additional notes</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                        <div className="flex items-start gap-3">
+                          <HelpCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-semibold text-blue-900">Need Changes?</p>
+                            <p className="text-xs text-blue-800 mt-1">Contact the admin team through Messages if you need to modify your stall allocation.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50/60 p-5">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                            <Clock className="w-6 h-6 text-yellow-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-yellow-950">Pending Allocation</p>
+                            <p className="text-xs text-yellow-800 mt-1">Your stall allocation is being reviewed by the admin team. You'll receive confirmation soon.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+                        <div className="space-y-2">
+                          <div className="w-16 h-16 rounded-full bg-gray-200 mx-auto animate-pulse"></div>
+                          <p className="text-xs text-gray-600 font-medium">Waiting for allocation assignment...</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </article>
+                {/* Messages tab - exhibitor-facing messaging + status tracker (read-only allocation) */}
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md space-y-4">
-                  <h2 className="text-base font-semibold text-emerald-950">Stall Allocation Setup</h2>
-                  <select className="w-full h-10 rounded-xl border border-black/10 bg-white px-3 text-sm" value={stallSize} onChange={(e) => setStallSize(e.target.value)}>
-                    <option value="small">Small (10x10)</option>
-                    <option value="medium">Medium (20x20)</option>
-                    <option value="large">Large (30x30)</option>
-                  </select>
-                  <textarea className="w-full min-h-[120px] rounded-xl border border-black/10 bg-white px-3 py-2 text-sm" value={stallNotes} onChange={(e) => setStallNotes(e.target.value)} />
-                  <Button className="w-full bg-[#08331a]" onClick={handleSaveStallBooking}>Save Changes</Button>
+                  <div className="flex items-center justify-between border-b border-black/5 pb-3">
+                    <h2 className="text-base font-semibold text-emerald-950">Payment QR</h2>
+                    <CreditCard className="h-5 w-5 text-[#0a4d25]" />
+                  </div>
+                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-center">
+                    <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
+                      <img
+                        src="/payment-qr-placeholder.svg"
+                        alt="Payment QR placeholder"
+                        className="h-[180px] w-[180px] rounded-xl object-cover"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Scan this QR to complete the exhibitor payment.
+                    </p>
+                    <div className="text-[11px] text-emerald-900/70">
+                      Amount: {exhibitorProfile?.paymentAmount || 0} INR
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-emerald-950">Transaction ID</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      className="w-full min-h-12 rounded-xl border border-black/10 bg-white px-3 py-3 text-base appearance-none"
+                      value={paymentTransactionId}
+                      onChange={(e) => {
+                        paymentTransactionDirtyRef.current = true;
+                        setPaymentTransactionId(e.target.value);
+                      }}
+                      placeholder="Paste or type payment transaction ID"
+                    />
+                    <label className="block text-xs font-semibold text-emerald-950">Select payment proof screenshot</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handlePaymentProofSelection(e.target.files?.[0] || null)}
+                      className="block w-full text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">Choose a screenshot, then tap Update Payment to save this record to history.</p>
+                    {paymentProofPreview && (
+                      <div className="rounded-xl border border-emerald-100 bg-white p-2">
+                        <img src={paymentProofPreview} alt="Selected payment proof" className="h-32 w-full rounded-lg object-cover" />
+                      </div>
+                    )}
+                    <Button className="w-full bg-[#08331a]" onClick={handleSavePaymentDetails}>
+                      Update Payment
+                    </Button>
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-xs font-semibold text-emerald-950">Payment History</h3>
+                        <span className="text-[11px] text-muted-foreground">{paymentHistory.length} saved updates</span>
+                      </div>
+                      {isLoadingPaymentHistory ? (
+                        <p className="mt-2 text-[11px] text-muted-foreground">Loading payment history...</p>
+                      ) : paymentHistory.length === 0 ? (
+                        <p className="mt-2 text-[11px] text-muted-foreground">No previous payment updates yet.</p>
+                      ) : (
+                        <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                          {paymentHistory.map((entry) => (
+                            <div key={entry.id} className="rounded-xl border border-emerald-100 bg-white p-3 shadow-sm">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                  <p className="text-[11px] font-semibold text-emerald-950">{new Date(entry.recordedAt).toLocaleString()}</p>
+                                  <p className="text-[11px] text-muted-foreground break-all">Txn: {entry.transactionId}</p>
+                                  <p className="text-[11px] text-muted-foreground">Amount: {entry.paymentAmount} INR</p>
+                                </div>
+                                {entry.proofUrl && (
+                                  <a
+                                    href={entry.proofUrl}
+                                    download={`${boothName.replace(/\s+/g, "_")}_payment_${entry.id}.png`}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 underline"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    Proof
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </article>
                 <article className="rounded-2xl border border-white/55 bg-white/80 p-5 shadow-lg backdrop-blur-md">
                   <h2 className="text-base font-semibold text-emerald-950 mb-4">Guidelines</h2>
@@ -788,6 +1067,30 @@ const ExhibitorPanel = () => {
                   ))}
                 </article>
               </div>
+            )}
+
+            {activeTab === "messages" && (
+              <article className="rounded-2xl border border-white/55 bg-white/80 p-6 shadow-lg backdrop-blur-md space-y-6">
+                <div className="border-b border-black/5 pb-4">
+                  <h2 className="text-lg font-bold text-emerald-950 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-emerald-600" />
+                    Messages & Status
+                  </h2>
+                  <p className="text-xs text-gray-600 mt-1">Communicate with the admin team and view allocation status</p>
+                </div>
+                <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+                  <div>
+                    <ExhibitorMessages
+                      exhibitorId={(exhibitor && (exhibitor.id || exhibitor.exhibitor_id)) as string}
+                      exhibitorName={boothName}
+                      exhibitorEmail={exhibitor?.email || ""}
+                    />
+                  </div>
+                  <div>
+                    <ExhibitorStatusTracker exhibitorId={(exhibitor && (exhibitor.id || exhibitor.exhibitor_id)) as string} />
+                  </div>
+                </div>
+              </article>
             )}
 
             {activeTab === "records" && (

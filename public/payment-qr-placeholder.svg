@@ -1,0 +1,27 @@
+<svg width="360" height="360" viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="360" height="360" rx="28" fill="#F7FAF7"/>
+  <rect x="24" y="24" width="312" height="312" rx="22" fill="white" stroke="#0F5132" stroke-width="4"/>
+  <rect x="46" y="46" width="82" height="82" rx="10" fill="#0F5132"/>
+  <rect x="58" y="58" width="58" height="58" rx="6" fill="white"/>
+  <rect x="220" y="46" width="94" height="18" rx="6" fill="#0F5132"/>
+  <rect x="220" y="74" width="62" height="18" rx="6" fill="#C8E6C9"/>
+  <rect x="46" y="144" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="98" y="144" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="130" y="144" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="182" y="144" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="214" y="144" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="266" y="144" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="46" y="196" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="78" y="196" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="130" y="196" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="162" y="196" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="214" y="196" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="246" y="196" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="46" y="248" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="98" y="248" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="130" y="248" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="182" y="248" width="22" height="22" rx="4" fill="#0F5132"/>
+  <rect x="214" y="248" width="42" height="42" rx="6" fill="#0F5132"/>
+  <rect x="266" y="248" width="22" height="22" rx="4" fill="#0F5132"/>
+  <text x="180" y="330" text-anchor="middle" fill="#0F5132" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Payment QR Placeholder</text>
+</svg>

@@ -13,7 +13,7 @@ Bioenergy Expo 2026 is now a world-class international expo platform with **4 de
 - **Styling**: Tailwind CSS + Radix UI components
 - **Database**: Firebase Firestore
 - **Authentication**: Custom RBAC system with sessionStorage
-- **Email**: AWS SES + Resend API
+- **Email**: AWS SES
 - **QR Codes**: qrcode.react library
 - **Backend APIs**: Node.js/JavaScript serverless functions
 
@@ -295,13 +295,12 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 VITE_ADMIN_USERNAME=admin
 VITE_ADMIN_PASSWORD=...
-RESEND_API_KEY=...
-RESEND_FROM_EMAIL=noreply@aceeventmanagers.com
-AWS_REGION=...
+AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
-AWS_SES_FROM_EMAIL=...
+AWS_SES_FROM_EMAIL=sidbixx@gmail.com
 ```
+Note: The application is configured to send SES email from the verified sender `sidbixx@gmail.com`. In sandbox mode, you also must verify recipient addresses or request production access.
 
 ### Build & Run
 ```bash
@@ -420,6 +419,8 @@ All pages are fully responsive:
 - Check AWS SES configuration
 - Verify email is not in quarantine
 - Check email quota limits
+- If your SES account is still in sandbox mode, verify both the sender and recipient email identities in the same AWS region
+- To send to arbitrary attendee emails, request SES production access from AWS and move the account out of sandbox mode
 
 **Badge not generating?**
 - Ensure qrcode.react is installed
