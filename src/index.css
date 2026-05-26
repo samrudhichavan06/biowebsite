@@ -240,6 +240,55 @@
   animation-delay: 0.7s;
 }
 
+@keyframes whatsapp-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 12px 26px rgba(37, 211, 102, 0.35);
+  }
+  50% {
+    transform: translateY(-4px);
+    box-shadow:
+      0 18px 34px rgba(37, 211, 102, 0.48),
+      0 0 18px rgba(255, 255, 255, 0.35);
+  }
+}
+
+@keyframes whatsapp-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(37, 211, 102, 0);
+  }
+  45% {
+    box-shadow: 0 0 18px rgba(37, 211, 102, 0.65);
+  }
+  55% {
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.45);
+  }
+}
+
+.whatsapp-float {
+  animation: whatsapp-float 3.2s ease-in-out infinite, whatsapp-flash 1.8s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+.whatsapp-sweep {
+  position: absolute;
+  inset: -40% -20%;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 40%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0.2) 60%,
+    transparent 100%
+  );
+  filter: blur(4px);
+  mix-blend-mode: screen;
+  animation: glow-sweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .noise {
   background-image: radial-gradient(
     hsl(var(--foreground) / 0.08) 1px,
