@@ -159,6 +159,87 @@
   animation: blob 14s ease-in-out infinite;
 }
 
+@keyframes glow-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow:
+      0 10px 28px rgb(var(--glow-rgb) / 0.28),
+      0 0 0 rgb(var(--glow-rgb) / 0);
+  }
+  50% {
+    transform: translateY(-6px);
+    box-shadow:
+      0 16px 40px rgb(var(--glow-rgb) / 0.42),
+      0 0 22px rgb(var(--glow-rgb) / 0.35);
+  }
+}
+
+.glow-cta {
+  --glow-rgb: 14 83 112;
+  animation: glow-float 3.6s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+.glow-cta-amber {
+  --glow-rgb: 251 146 60;
+}
+
+.glow-cta-emerald {
+  --glow-rgb: 20 184 166;
+}
+
+.glow-delay-1 {
+  animation-delay: 0.2s;
+}
+
+.glow-delay-2 {
+  animation-delay: 0.4s;
+}
+
+@keyframes glow-sweep {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(120%);
+    opacity: 0.15;
+  }
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+.glow-sweep {
+  position: absolute;
+  inset: -35% -10%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgb(var(--glow-rgb) / 0.16) 45%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgb(var(--glow-rgb) / 0.18) 55%,
+    transparent 100%
+  );
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: glow-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.glow-sweep-delay-1 {
+  animation-delay: 0.35s;
+}
+
+.glow-sweep-delay-2 {
+  animation-delay: 0.7s;
+}
+
 .noise {
   background-image: radial-gradient(
     hsl(var(--foreground) / 0.08) 1px,
