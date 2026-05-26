@@ -13,6 +13,7 @@ import ExhibitorRegister from "./pages/ExhibitorRegister";
 import ExhibitorLogin from "./pages/ExhibitorLogin";
 import ExhibitorPanel from "./pages/ExhibitorPanel";
 import DelegateRegister from "./pages/DelegateRegister";
+import DelegateSuccess from "./pages/DelegateSuccess";
 // Visitor and Fabricator registration pages removed
 import UnifiedDashboard from "./pages/UnifiedDashboard";
 import DashboardWrapper from "./pages/DashboardWrapper";
@@ -42,6 +43,7 @@ const App = () => (
           
           {/* Delegate/Conference Zone */}
           <Route path="/delegate/register" element={<DelegateRegister />} />
+          <Route path="/delegate/success" element={<DelegateSuccess />} />
           
           {/* Visitor and Fabricator registration removed; use Events list */}
           

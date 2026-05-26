@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, getDoc, updateDoc, addDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, getDoc, updateDoc, addDoc, where } from "firebase/firestore";
 import { generateAndSendBadge, getBadgeByRegistrationCode, markBadgeAsScanned } from "@/lib/badgeService";
 import { Button } from "@/components/ui/button";
 import { clearAdminAuthenticated, isAdminAuthenticated } from "@/lib/adminAuth";
@@ -56,8 +56,49 @@ const AdminDashboard = () => {
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessageBody, setBroadcastMessageBody] = useState('');
   const [broadcastRoles, setBroadcastRoles] = useState<string[]>(['exhibitors','visitors','delegates','fabricators']);
-  const [selectedAdminAction, setSelectedAdminAction] = useState<'messages' | 'feedback' | null>(null);
-  const [activeAdminExhibitor, setActiveAdminExhibitor] = useState<any | null>(null);
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
+  const [actionPanelMode, setActionPanelMode] = useState<'messages' | 'feedback'>('messages');
+  const [selectedExhibitorForActions, setSelectedExhibitorForActions] = useState<any | null>(null);
+  const [unreadMessageCounts, setUnreadMessageCounts] = useState<Record<string, number>>({});
+  const totalUnreadMessageCount = useMemo(
+    () => Object.values(unreadMessageCounts).reduce((sum, count) => sum + count, 0),
+    [unreadMessageCounts]
+  );
+
+  const refreshUnreadMessageCounts = async () => {
+    if (!isFirebaseConfigured || !db || users.length === 0) return;
+
+    const exhibitorUsers = users.filter((user) => String(user.collection || user._collection || "").toLowerCase() === "exhibitors");
+    if (exhibitorUsers.length === 0) {
+      setUnreadMessageCounts({});
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      exhibitorUsers.map(async (user) => {
+        const snapshot = await getDocs(
+          query(
+            collection(db, COLLECTIONS.EXHIBITOR_MESSAGES),
+            where("exhibitorId", "==", user.id)
+          )
+        );
+        const count = snapshot.docs.filter((messageDoc) => {
+          const data = messageDoc.data() as { senderRole?: string; read?: boolean };
+          return data.senderRole === "exhibitor" && data.read === false;
+        }).length;
+        return { id: user.id, count };
+      })
+    );
+
+    const nextCounts: Record<string, number> = {};
+    results.forEach((result) => {
+      if (result.status === "fulfilled" && result.value.count > 0) {
+        nextCounts[result.value.id] = result.value.count;
+      }
+    });
+
+    setUnreadMessageCounts(nextCounts);
+  };
 
   const authenticated = isAdminAuthenticated();
 
@@ -136,6 +177,11 @@ const AdminDashboard = () => {
             query(collection(db, COLLECTIONS.EXHIBITOR_PAYMENT_HISTORY), orderBy("recordedAt", "desc")),
           );
           const groupedHistory = paymentHistorySnapshot.docs.reduce<Record<string, ExhibitorPaymentHistory[]>>((acc, paymentDoc) => {
+
+  useEffect(() => {
+    if (!actionPanelOpen || actionPanelMode !== "messages") return;
+    void refreshUnreadMessageCounts();
+  }, [actionPanelOpen, actionPanelMode]);
             const entry = { id: paymentDoc.id, ...(paymentDoc.data() as ExhibitorPaymentHistory) };
             if (!entry.exhibitorId) {
               return acc;
@@ -160,6 +206,49 @@ const AdminDashboard = () => {
       loadAllUsers();
     }
   }, [selectedMenu]);
+
+  useEffect(() => {
+    const loadUnreadMessageCounts = async () => {
+      if (!isFirebaseConfigured || !db) return;
+
+      const exhibitorsSnapshot = await getDocs(collection(db, "exhibitors"));
+      const exhibitorUsers = exhibitorsSnapshot.docs.map((docSnap) => ({ id: docSnap.id }));
+
+      if (exhibitorUsers.length === 0) {
+        setUnreadMessageCounts({});
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        exhibitorUsers.map(async (user) => {
+          const snapshot = await getDocs(
+            query(
+              collection(db, COLLECTIONS.EXHIBITOR_MESSAGES),
+              where("exhibitorId", "==", user.id)
+            )
+          );
+          const count = snapshot.docs.filter((messageDoc) => {
+            const data = messageDoc.data() as { senderRole?: string; read?: boolean };
+            return data.senderRole === "exhibitor" && data.read === false;
+          }).length;
+          return { id: user.id, count };
+        })
+      );
+
+      const nextCounts: Record<string, number> = {};
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value.count > 0) {
+          nextCounts[result.value.id] = result.value.count;
+        }
+      });
+
+      setUnreadMessageCounts(nextCounts);
+    };
+
+    if (authenticated) {
+      void loadUnreadMessageCounts();
+    }
+  }, [authenticated]);
 
   // Load admin-managed events from admin_settings/event_catalog when opening Events panel
   useEffect(() => {
@@ -464,15 +553,24 @@ const AdminDashboard = () => {
                 { ico: Users, id: "users" },
                 { ico: Globe2, id: "location" },
                 { ico: CalendarDays, id: "events" },
-              ].map(({ ico: Icon, id }, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setSelectedMenu(id as any)}
-                  className={`grid h-10 w-10 place-items-center rounded-xl text-white/85 transition hover:bg-white/15 ${selectedMenu === id ? "bg-white/10" : ""}`}>
-                  <Icon className="h-4 w-4" />
-                </button>
-              ))}
+              ].map(({ ico: Icon, id }, idx) => {
+                const showUnreadBadge = id === "users" && totalUnreadMessageCount > 0;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedMenu(id as any)}
+                    className={`relative grid h-10 w-10 place-items-center rounded-xl text-white/85 transition hover:bg-white/15 ${selectedMenu === id ? "bg-white/10" : ""}`}>
+                    <Icon className="h-4 w-4" />
+                    {showUnreadBadge && (
+                      <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-[#024221]">
+                        {totalUnreadMessageCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <button
@@ -516,12 +614,22 @@ const AdminDashboard = () => {
               <Shield className="h-5 w-5 text-lime-300" />
             </div>
             <div className="space-y-3">
-              {[LayoutGrid, ChartColumnBig, Users, Globe2, CalendarDays].map((Icon, idx) => (
-                <button key={idx} type="button" className="w-full text-left px-4 py-2 rounded-lg text-white/85 transition hover:bg-white/15 flex items-center gap-3">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm">{["Dashboard", "Analytics", "Users", "Location", "Events"][idx]}</span>
-                </button>
-              ))}
+              {[LayoutGrid, ChartColumnBig, Users, Globe2, CalendarDays].map((Icon, idx) => {
+                const label = ["Dashboard", "Analytics", "Users", "Location", "Events"][idx];
+                const showUnreadBadge = label === "Users" && totalUnreadMessageCount > 0;
+
+                return (
+                  <button key={idx} type="button" className="w-full text-left px-4 py-2 rounded-lg text-white/85 transition hover:bg-white/15 flex items-center gap-3 relative">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm">{label}</span>
+                    {showUnreadBadge && (
+                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-[#024221]">
+                        {totalUnreadMessageCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <button
@@ -1103,25 +1211,36 @@ const AdminDashboard = () => {
 
                                     <td className="px-4 py-4">
                                       <div className="flex flex-col gap-2">
-                                        <Button size="sm" onClick={() => {
-                                          // open messaging modal/drawer
-                                          setActiveAdminExhibitor(u);
-                                          setSelectedAdminAction('messages');
-                                          const win = window.open("", `_admin_msg_${id}`, "width=900,height=700");
-                                          if (!win) return;
-                                          setSelectedAdminAction('messages');
-                                          // Minimal wrapper - full SPA integration requires router/modal wiring
-                                          win.document.body.innerHTML = `<div id=\"admin-root\"></div>`;
-                                          // Inform admin they should use Admin Dashboard UI; this is temporary fallback
-                                        }} className="h-8 rounded-full">Manage Messages</Button>
-                                        <Button size="sm" variant="ghost" onClick={() => {
-                                          const id = u.id;
-                                          const name = getUserDisplayName(u);
-                                          const win = window.open("", `_admin_feedback_${id}`, "width=900,height=700");
-                                          if (!win) return;
-                                          win.document.title = `Feedback - ${name}`;
-                                          win.document.body.innerHTML = `<div id=\"admin-root\"></div>`;
-                                        }} className="h-8 rounded-full">Manage Feedback</Button>
+                                        <div className="relative inline-flex w-fit">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedExhibitorForActions(u);
+                                              setActionPanelMode('messages');
+                                              setActionPanelOpen(true);
+                                            }}
+                                            className="h-8 rounded-full pr-3"
+                                          >
+                                            Manage Messages
+                                          </Button>
+                                          {(unreadMessageCounts[u.id] || 0) > 0 && (
+                                            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-white">
+                                              {unreadMessageCounts[u.id]}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            setSelectedExhibitorForActions(u);
+                                            setActionPanelMode('feedback');
+                                            setActionPanelOpen(true);
+                                          }}
+                                          className="h-8 rounded-full"
+                                        >
+                                          Manage Feedback
+                                        </Button>
                                       </div>
                                     </td>
 
@@ -1149,46 +1268,70 @@ const AdminDashboard = () => {
                           <p className="mt-2 text-xs text-muted-foreground">Try a different search term or clear the search box.</p>
                         </div>
                       )}
-
-                      {activeAdminExhibitor && selectedAdminAction && (
-                        <div className="mt-6 rounded-[24px] border border-[#0f2f1b]/10 bg-white p-4 shadow-sm">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <h2 className="text-xl font-semibold text-emerald-950">
-                                {selectedAdminAction === 'messages' ? 'Exhibitor Messaging' : 'Feedback & Approvals'} for {getUserDisplayName(activeAdminExhibitor)}
-                              </h2>
-                              <p className="text-sm text-muted-foreground">
-                                {selectedAdminAction === 'messages'
-                                  ? 'View and send messages directly to this exhibitor.'
-                                  : 'Review document approvals, add feedback, and track status for this exhibitor.'}
-                              </p>
-                            </div>
-                            <Button size="sm" variant="ghost" onClick={() => {
-                              setSelectedAdminAction(null);
-                              setActiveAdminExhibitor(null);
-                            }}>
-                              Close panel
-                            </Button>
-                          </div>
-
-                          <div className="mt-4">
-                            {selectedAdminAction === 'messages' ? (
-                              <AdminExhibitorMessaging
-                                exhibitorId={activeAdminExhibitor.id}
-                                exhibitorName={getUserDisplayName(activeAdminExhibitor)}
-                              />
-                            ) : (
-                              <AdminFeedbackManagement
-                                exhibitorId={activeAdminExhibitor.id}
-                                exhibitorName={getUserDisplayName(activeAdminExhibitor)}
-                                adminId="admin"
-                              />
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </article>
                   )}
+                </div>
+              )}
+
+              {actionPanelOpen && selectedExhibitorForActions && (
+                <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-6 pointer-events-none">
+                  <div className="pointer-events-auto w-full max-w-[440px] rounded-3xl border border-emerald-200 bg-white/95 shadow-2xl backdrop-blur-md overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3 bg-emerald-50/80">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                          Exhibitor Actions
+                        </p>
+                        <h3 className="text-sm font-bold text-emerald-950 truncate">
+                          {getUserDisplayName(selectedExhibitorForActions)}
+                        </h3>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActionPanelOpen(false)}
+                        className="h-8 w-8 rounded-full p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="flex gap-2 px-4 pt-4">
+                      <Button
+                        size="sm"
+                        variant={actionPanelMode === 'messages' ? 'default' : 'outline'}
+                        onClick={() => setActionPanelMode('messages')}
+                        className="rounded-full"
+                      >
+                        Messages
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={actionPanelMode === 'feedback' ? 'default' : 'outline'}
+                        onClick={() => setActionPanelMode('feedback')}
+                        className="rounded-full"
+                      >
+                        Feedback
+                      </Button>
+                    </div>
+
+                    <div className="max-h-[72vh] overflow-y-auto px-4 py-4">
+                      {actionPanelMode === 'messages' ? (
+                        <AdminExhibitorMessaging
+                          exhibitorId={selectedExhibitorForActions.id}
+                          exhibitorName={getUserDisplayName(selectedExhibitorForActions)}
+                          onMessagesRead={() => {
+                            void refreshUnreadMessageCounts();
+                          }}
+                        />
+                      ) : (
+                        <AdminFeedbackManagement
+                          exhibitorId={selectedExhibitorForActions.id}
+                          exhibitorName={getUserDisplayName(selectedExhibitorForActions)}
+                          adminId="admin"
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 

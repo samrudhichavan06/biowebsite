@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, orderBy, getDocs as firebaseGetDocs } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { COLLECTIONS, ExhibitorMessage, Exhibitor } from "@/lib/collections";
+import { COLLECTIONS, ExhibitorMessage } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, Send, Trash2, Eye, EyeOff } from "lucide-react";
@@ -10,9 +10,10 @@ import { toast } from "sonner";
 interface AdminExhibitorMessagingProps {
   exhibitorId: string;
   exhibitorName: string;
+  onMessagesRead?: () => void;
 }
 
-export const AdminExhibitorMessaging = ({ exhibitorId, exhibitorName }: AdminExhibitorMessagingProps) => {
+export const AdminExhibitorMessaging = ({ exhibitorId, exhibitorName, onMessagesRead }: AdminExhibitorMessagingProps) => {
   const [messages, setMessages] = useState<ExhibitorMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
@@ -89,6 +90,39 @@ export const AdminExhibitorMessaging = ({ exhibitorId, exhibitorName }: AdminExh
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    if (!db) return;
+
+    const unreadExhibitorMessages = messages.filter((message) => message.senderRole === "exhibitor" && !message.read);
+    if (unreadExhibitorMessages.length === 0) {
+      toast.info("No unread exhibitor messages");
+      return;
+    }
+
+    try {
+      await Promise.all(
+        unreadExhibitorMessages.map((message) =>
+          updateDoc(doc(db, COLLECTIONS.EXHIBITOR_MESSAGES, message.id), {
+            read: true,
+            readAt: serverTimestamp(),
+          })
+        )
+      );
+
+      setMessages((currentMessages) =>
+        currentMessages.map((message) =>
+          message.senderRole === "exhibitor" ? { ...message, read: true } : message
+        )
+      );
+
+      onMessagesRead?.();
+      toast.success("Marked as read");
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      toast.error("Failed to mark messages as read");
+    }
+  };
+
   const unreadCount = messages.filter(m => !m.read && m.senderRole === "exhibitor").length;
 
   return (
@@ -101,11 +135,18 @@ export const AdminExhibitorMessaging = ({ exhibitorId, exhibitorName }: AdminExh
             <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1">{unreadCount} unread</span>
           )}
         </div>
-        {!showCompose && (
-          <Button onClick={() => setShowCompose(true)} variant="outline" size="sm">
-            Send Message
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button onClick={handleMarkAllAsRead} variant="secondary" size="sm">
+              Mark Read
+            </Button>
+          )}
+          {!showCompose && (
+            <Button onClick={() => setShowCompose(true)} variant="outline" size="sm">
+              Send Message
+            </Button>
+          )}
+        </div>
       </div>
 
       {showCompose && (
