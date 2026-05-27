@@ -93,51 +93,51 @@ const RegistrationSuccess = () => {
 
               <div
                 ref={passCardRef}
-                className="relative mt-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#3b2500] via-[#d2a843] to-[#fff3b0] p-5 text-white shadow-[0_20px_80px_rgba(255,214,120,0.8)] ring-1 ring-yellow-100/60"
+                className="relative mt-5 overflow-hidden rounded-[1.5rem] bg-gradient-to-r from-[#0f1724] to-[#111827] p-0 text-white shadow-2xl"
               >
-                <div className="pointer-events-none absolute inset-0 rounded-[2rem] border border-yellow-200/30" />
-                <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-yellow-200/50 blur-[90px]" />
-                <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-amber-300/55 blur-[90px]" />
-                <div className="pointer-events-none absolute inset-x-0 top-10 h-14 bg-gradient-to-r from-transparent via-white/55 to-transparent opacity-80" />
-
-                <div className="relative z-10 flex items-start justify-between gap-4">
-                  <div className="max-w-[70%]">
-                    <div className="flex items-center gap-3">
-                      <p className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-yellow-100 drop-shadow-[0_0_6px_rgba(255,233,170,0.9)]">
-                        Delegate Pass
-                      </p>
-                      <span className="inline-flex items-center rounded-full bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-100 px-2.5 py-1 text-[10px] font-bold text-[#5a3b00] shadow-[0_0_14px_rgba(255,240,170,0.95)]">
-                        VIP
-                      </span>
+                <div className="flex items-stretch rounded-[1.5rem] overflow-hidden">
+                  {/* Left main ticket area (dark/gold) */}
+                  <div className="w-3/4 bg-gradient-to-b from-yellow-500 via-yellow-400 to-yellow-300 p-6 relative">
+                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02),transparent)]" />
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/95">Delegate Pass</p>
+                        <h2 className="mt-3 font-display text-2xl text-white drop-shadow-lg">{pass.eventName}</h2>
+                        <p className="mt-1 text-sm text-white/90">Pass No: {pass.passNumber}</p>
+                      </div>
+                      <div className="rounded-sm bg-white px-3 py-2 shadow-sm">
+                        <img src={logo} alt="BioEnergy Global" className="h-10 w-auto object-contain" />
+                      </div>
                     </div>
-                    <h2 className="mt-3 font-display text-[1.7rem] leading-[1.05] drop-shadow-[0_2px_16px_rgba(0,0,0,0.35)] sm:text-[1.95rem]">{pass.eventName}</h2>
-                    <p className="mt-1 text-xs font-medium text-yellow-100">Pass No: {pass.passNumber}</p>
+
+                    <div className="mt-6 grid grid-cols-2 gap-3 text-white/95">
+                      <div>
+                        <div className="text-sm"><span className="font-medium">Name:</span> {pass.fullName}</div>
+                        <div className="text-sm mt-2"><span className="font-medium">Email:</span> {pass.email}</div>
+                        {pass.phone && <div className="text-sm mt-2"><span className="font-medium">Phone:</span> {pass.phone}</div>}
+                      </div>
+                      <div>
+                        {pass.company && <div className="text-sm"><span className="font-medium">Company:</span> {pass.company}</div>}
+                        <div className="text-sm mt-2"><span className="font-medium">Type:</span> {pass.attendeeType}</div>
+                        {pass.designation && <div className="text-sm mt-2"><span className="font-medium">Designation:</span> {pass.designation}</div>}
+                      </div>
+                    </div>
+
+                    <p className="mt-6 text-xs uppercase tracking-widest text-white/80">Issued {new Date(pass.issuedAt).toLocaleString()}</p>
                   </div>
-                  <div className="rounded-sm bg-white px-3 py-2 shadow-[0_0_18px_rgba(255,255,255,0.65)]">
-                    <img src={logo} alt="BioEnergy Global" className="h-8 w-auto object-contain" />
+
+                  {/* Vertical tear line */}
+                  <div className="w-0.5 bg-white/20" />
+
+                  {/* Right stub with QR (white) */}
+                  <div className="w-1/4 bg-white p-4 flex flex-col items-center justify-center">
+                    <div className="bg-white p-2 rounded-md shadow-lg">
+                      <QRCodeSVG value={qrPayload} size={160} includeMargin />
+                    </div>
+                    <div className="mt-4 text-sm text-gray-700 font-semibold">Admit</div>
+                    <div className="mt-1 text-xs text-gray-500">Show at entry</div>
                   </div>
                 </div>
-
-                <div className="relative z-10 mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[0.78rem] leading-snug sm:text-[0.9rem]">
-                    <div className="col-span-2"><span className="text-white/80">Name:</span> {pass.fullName}</div>
-                    <div className="col-span-2"><span className="text-white/80">Email:</span> {pass.email}</div>
-                    {pass.phone && <div><span className="text-white/80">Phone:</span> {pass.phone}</div>}
-                    {pass.country && <div><span className="text-white/80">Country:</span> {pass.country}</div>}
-                    {pass.company && <div><span className="text-white/80">Company:</span> {pass.company}</div>}
-                    <div><span className="text-white/80">Type:</span> <strong className="ml-1 text-yellow-100">{pass.attendeeType}</strong></div>
-                    {pass.designation && <div className="col-span-2"><span className="text-white/80">Designation:</span> {pass.designation}</div>}
-                    {pass.interests && <div className="col-span-2"><span className="text-white/80">Interests:</span> {pass.interests}</div>}
-                  </dl>
-
-                  <div className="mx-auto rounded-[1.35rem] bg-white p-3 shadow-[0_0_30px_rgba(255,236,170,0.7)] ring-2 ring-yellow-200/60 sm:mx-0">
-                    <QRCodeSVG value={qrPayload} size={150} includeMargin />
-                  </div>
-                </div>
-
-                <p className="relative z-10 mt-4 text-[11px] font-medium uppercase tracking-[0.2em] text-yellow-100/90">
-                  Issued {new Date(pass.issuedAt).toLocaleString()}
-                </p>
               </div>
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
