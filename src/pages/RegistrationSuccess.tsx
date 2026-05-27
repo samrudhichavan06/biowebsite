@@ -106,51 +106,53 @@ const RegistrationSuccess = () => {
                   .sparkle { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: radial-gradient(circle,#fff,#ffe59e); opacity: .95; filter: blur(0.4px); }
                 `}</style>
 
-                <div className="flex items-stretch rounded-[1.5rem] overflow-hidden">
+                <div className="flex flex-col items-stretch rounded-[1.5rem] overflow-hidden md:flex-row">
                   {/* Left main ticket area (dark/gold) */}
-                  <div className="w-3/4 bg-gradient-to-b from-yellow-500 via-yellow-400 to-yellow-300 p-6 relative">
+                  <div className="relative w-full bg-gradient-to-b from-yellow-500 via-yellow-400 to-yellow-300 p-4 sm:p-6 md:w-3/4">
                     <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02),transparent)]" />
                     <div className="shimmer-overlay"><div className="shimmer" /></div>
                     <span className="sparkle" style={{left: '8%', top: '18%'}} />
                     <span className="sparkle" style={{left: '22%', top: '28%'}} />
                     <span className="sparkle" style={{left: '56%', top: '8%'}} />
                     <span className="sparkle" style={{left: '68%', top: '36%'}} />
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/95 vip-pulse">Delegate Pass</p>
-                        <h2 className="mt-3 font-display text-2xl text-white drop-shadow-lg">{pass.eventName}</h2>
-                        <p className="mt-1 text-sm text-white/90">Pass No: {pass.passNumber}</p>
+                        <h2 className="mt-3 font-display text-2xl leading-tight text-white drop-shadow-lg sm:text-3xl">{pass.eventName}</h2>
+                        <p className="mt-1 text-sm text-white/90 sm:text-base">Pass No: {pass.passNumber}</p>
                       </div>
-                      <div className="rounded-sm bg-white px-3 py-2 shadow-sm vip-pulse" style={{boxShadow:'0 6px 20px rgba(255,220,120,0.35)'}}>
-                        <img src={logo} alt="BioEnergy Global" className="h-10 w-auto object-contain" />
-                      </div>
-                    </div>
-
-                    <div className="mt-6 grid grid-cols-2 gap-3 text-white/95">
-                      <div>
-                        <div className="text-sm"><span className="font-medium">Name:</span> {pass.fullName}</div>
-                        <div className="text-sm mt-2"><span className="font-medium">Email:</span> {pass.email}</div>
-                        {pass.phone && <div className="text-sm mt-2"><span className="font-medium">Phone:</span> {pass.phone}</div>}
-                      </div>
-                      <div>
-                        {pass.company && <div className="text-sm"><span className="font-medium">Company:</span> {pass.company}</div>}
-                        <div className="text-sm mt-2"><span className="font-medium">Type:</span> {pass.attendeeType}</div>
-                        {pass.designation && <div className="text-sm mt-2"><span className="font-medium">Designation:</span> {pass.designation}</div>}
+                      <div className="shrink-0 rounded-sm bg-white px-2 py-2 shadow-sm vip-pulse sm:px-3" style={{boxShadow:'0 6px 20px rgba(255,220,120,0.35)'}}>
+                        <img src={logo} alt="BioEnergy Global" className="h-8 w-auto object-contain sm:h-10" />
                       </div>
                     </div>
 
-                    <p className="mt-6 text-xs uppercase tracking-widest text-white/80">Issued {new Date(pass.issuedAt).toLocaleString()}</p>
+                    <div className="mt-5 grid grid-cols-1 gap-3 text-white/95 sm:grid-cols-2 sm:mt-6">
+                      <div>
+                        <div className="text-sm sm:text-base"><span className="font-medium">Name:</span> {pass.fullName}</div>
+                        <div className="mt-2 text-sm sm:text-base"><span className="font-medium">Email:</span> {pass.email}</div>
+                        {pass.phone && <div className="mt-2 text-sm sm:text-base"><span className="font-medium">Phone:</span> {pass.phone}</div>}
+                      </div>
+                      <div>
+                        {pass.company && <div className="text-sm sm:text-base"><span className="font-medium">Company:</span> {pass.company}</div>}
+                        <div className="mt-2 text-sm sm:text-base"><span className="font-medium">Type:</span> {pass.attendeeType}</div>
+                        {pass.designation && <div className="mt-2 text-sm sm:text-base"><span className="font-medium">Designation:</span> {pass.designation}</div>}
+                      </div>
+                    </div>
+
+                    <p className="mt-5 text-[10px] uppercase tracking-widest text-white/80 sm:mt-6 sm:text-xs">Issued {new Date(pass.issuedAt).toLocaleString()}</p>
                   </div>
 
                   {/* Vertical tear line */}
-                  <div className="w-0.5 bg-white/20" />
+                  <div className="h-0.5 w-full bg-white/20 md:h-auto md:w-0.5" />
 
                   {/* Right stub with QR (white) */}
-                  <div className="w-1/4 bg-white p-4 flex flex-col items-center justify-center">
-                    <div className="bg-white p-2 rounded-md shadow-lg qr-glow" style={{borderRadius:12}}>
-                      <QRCodeSVG value={qrPayload} size={160} includeMargin />
+                  <div className="flex w-full flex-col items-center justify-center bg-white p-4 md:w-1/4">
+                    <div className="qr-glow rounded-md bg-white p-2 shadow-lg" style={{ borderRadius: 12 }}>
+                      <div className="scale-90 sm:scale-100">
+                        <QRCodeSVG value={qrPayload} size={160} includeMargin />
+                      </div>
                     </div>
-                    <div className="mt-4 text-sm text-gray-700 font-semibold">Admit</div>
+                    <div className="mt-4 text-sm font-semibold text-gray-700 sm:text-base">Admit</div>
                     <div className="mt-1 text-xs text-gray-500">Show at entry</div>
                   </div>
                 </div>
