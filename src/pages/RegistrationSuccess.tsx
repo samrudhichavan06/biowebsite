@@ -93,12 +93,12 @@ const RegistrationSuccess = () => {
 
               <div
                 ref={passCardRef}
-                className="relative mt-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#1a0f05] via-[#6a3f0d] to-[#ffd86b] p-5 text-white shadow-[0_20px_70px_rgba(255,199,91,0.55)] ring-1 ring-yellow-200/50"
+                className="relative mt-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#3b2500] via-[#d2a843] to-[#fff3b0] p-5 text-white shadow-[0_20px_80px_rgba(255,214,120,0.8)] ring-1 ring-yellow-100/60"
               >
                 <div className="pointer-events-none absolute inset-0 rounded-[2rem] border border-yellow-200/30" />
-                <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-yellow-300/35 blur-[90px]" />
-                <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-amber-400/35 blur-[90px]" />
-                <div className="pointer-events-none absolute inset-x-0 top-10 h-12 bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
+                <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-yellow-200/50 blur-[90px]" />
+                <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-amber-300/55 blur-[90px]" />
+                <div className="pointer-events-none absolute inset-x-0 top-10 h-14 bg-gradient-to-r from-transparent via-white/55 to-transparent opacity-80" />
 
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-[70%]">
@@ -106,12 +106,12 @@ const RegistrationSuccess = () => {
                       <p className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-yellow-100 drop-shadow-[0_0_6px_rgba(255,233,170,0.9)]">
                         Delegate Pass
                       </p>
-                      <span className="inline-flex items-center rounded-full bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-200 px-2.5 py-1 text-[10px] font-bold text-[#3a2508] shadow-[0_0_12px_rgba(255,222,140,0.9)]">
+                      <span className="inline-flex items-center rounded-full bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-100 px-2.5 py-1 text-[10px] font-bold text-[#5a3b00] shadow-[0_0_14px_rgba(255,240,170,0.95)]">
                         VIP
                       </span>
                     </div>
-                    <h2 className="mt-3 font-display text-[1.7rem] leading-[1.05] drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)] sm:text-[1.95rem]">{pass.eventName}</h2>
-                    <p className="mt-1 text-xs font-medium text-yellow-50">Pass No: {pass.passNumber}</p>
+                    <h2 className="mt-3 font-display text-[1.7rem] leading-[1.05] drop-shadow-[0_2px_16px_rgba(0,0,0,0.35)] sm:text-[1.95rem]">{pass.eventName}</h2>
+                    <p className="mt-1 text-xs font-medium text-yellow-100">Pass No: {pass.passNumber}</p>
                   </div>
                   <div className="rounded-sm bg-white px-3 py-2 shadow-[0_0_18px_rgba(255,255,255,0.65)]">
                     <img src={logo} alt="BioEnergy Global" className="h-8 w-auto object-contain" />
