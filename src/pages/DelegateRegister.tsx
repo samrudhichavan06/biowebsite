@@ -42,6 +42,26 @@ const PACKAGE_OPTIONS: Array<{
   },
   {
     id: "both-days",
+                    const persistResp = await fetch("/api/razorpay/record-delegate", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        paymentId,
+                        passNumber: registrationCode,
+                        fullName: delegate.fullName.trim(),
+                        email: emailAddress.trim(),
+                        phone: mobileNumber.trim(),
+                        company: companyName.trim(),
+                        designation: delegate.designation.trim(),
+                        country: "",
+                        interests: "",
+                      }),
+                    });
+
+                    if (!persistResp.ok) {
+                      console.error("Server delegate persistence failed", await persistResp.text());
+                    }
+
     title: "Both Days Access",
     subtitle: "Combined access to both events",
     inrPerPerson: 9000,
@@ -227,6 +247,26 @@ export default function DelegateRegister() {
                 // Background task: generate badge + persist locally and via API
                 (async () => {
                   try {
+                    const persistResp = await fetch("/api/razorpay/record-delegate", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        paymentId,
+                        passNumber: registrationCode,
+                        fullName: delegate.fullName.trim(),
+                        email: emailAddress.trim(),
+                        phone: mobileNumber.trim(),
+                        company: companyName.trim(),
+                        designation: delegate.designation.trim(),
+                        country: "",
+                        interests: "",
+                      }),
+                    });
+
+                    if (!persistResp.ok) {
+                      console.error("Server delegate persistence failed", await persistResp.text());
+                    }
+
                     const badgeRes = await generateAndSendBadge({
                       userId: paymentId || `temp_${Date.now()}`,
                       userRole: "delegate",
@@ -251,9 +291,11 @@ export default function DelegateRegister() {
                     // Also persist a registration record to the event-specific registrations collection
                     try {
                       if (db) {
+                        const delegatesCol = fbCollection(db, "delegates");
                         const regCol = fbCollection(db, "registrations_bioenergy_global_2026");
-                        await addDoc(regCol, {
+                        const clientRecord = {
                           created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
                           event_name: "Bioenergy Global 2026",
                           full_name: delegate.fullName.trim(),
                           email: emailAddress.trim(),
@@ -264,7 +306,13 @@ export default function DelegateRegister() {
                           attendee_type: "Delegate",
                           interests: "",
                           paymentId,
-                        });
+                          passNumber: registrationCode,
+                          passType: "vip",
+                        };
+                        await Promise.all([
+                          addDoc(delegatesCol, clientRecord),
+                          addDoc(regCol, clientRecord),
+                        ]);
                       }
                     } catch (e) {
                       console.error("Failed to persist registration to Firestore:", e);
