@@ -202,7 +202,6 @@ export default function DelegateRegister() {
           handler: async (response: { razorpay_payment_id?: string; razorpay_order_id?: string; razorpay_signature?: string }) => {
             try {
               const paymentId = response.razorpay_payment_id ?? "";
-              alert(`Payment successful! Payment ID: ${paymentId || "N/A"}`);
 
               // Prepare pass and redirect immediately; run badge generation in background
               try {
@@ -252,8 +251,8 @@ export default function DelegateRegister() {
                   }
                 })();
 
-                // Redirect user to the pass page right away
-                window.location.href = "/registration-success";
+                // Redirect user to the pass page right away (route defined at /registration/success)
+                window.location.href = "/registration/success";
                 return;
               } catch (e) {
                 console.error("Failed to prepare redirect pass:", e);
