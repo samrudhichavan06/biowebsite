@@ -9,6 +9,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { generateAndSendBadge } from "@/lib/badgeService";
+import { db } from "@/lib/firebase";
+import { collection as fbCollection, addDoc } from "firebase/firestore";
 
 type DelegateRow = {
   fullName: string;
@@ -245,6 +247,27 @@ export default function DelegateRegister() {
                       localStorage.setItem("my_badges_v1", JSON.stringify(existing));
                     } catch (e) {
                       console.error("Failed to save badge locally:", e);
+                    }
+                    // Also persist a registration record to the event-specific registrations collection
+                    try {
+                      if (db) {
+                        const regCol = fbCollection(db, "registrations_bioenergy_global_2026");
+                        await addDoc(regCol, {
+                          created_at: new Date().toISOString(),
+                          event_name: "Bioenergy Global 2026",
+                          full_name: delegate.fullName.trim(),
+                          email: emailAddress.trim(),
+                          phone: mobileNumber.trim(),
+                          company: companyName.trim(),
+                          designation: delegate.designation.trim(),
+                          country: "",
+                          attendee_type: "Delegate",
+                          interests: "",
+                          paymentId,
+                        });
+                      }
+                    } catch (e) {
+                      console.error("Failed to persist registration to Firestore:", e);
                     }
                   } catch (err) {
                     console.error("Background badge generation failed:", err);

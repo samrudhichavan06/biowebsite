@@ -95,17 +95,33 @@ const RegistrationSuccess = () => {
                 ref={passCardRef}
                 className="relative mt-5 overflow-hidden rounded-[1.5rem] bg-gradient-to-r from-[#0f1724] to-[#111827] p-0 text-white shadow-2xl"
               >
+                <style>{`
+                  @keyframes shimmer { 0% { transform: translateX(-110%); } 100% { transform: translateX(110%); } }
+                  @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 8px rgba(255,223,102,0.45);} 50% { transform: scale(1.04); box-shadow: 0 0 26px rgba(255,223,102,0.95);} 100% { transform: scale(1); box-shadow: 0 0 8px rgba(255,223,102,0.45);} }
+                  @keyframes glow { 0% { box-shadow: 0 0 8px rgba(255,223,102,0.4);} 50% { box-shadow: 0 0 34px rgba(255,223,102,0.95);} 100% { box-shadow: 0 0 8px rgba(255,223,102,0.4);} }
+                  .shimmer-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+                  .shimmer { position: absolute; top: 0; left: -40%; width: 60%; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%); transform: translateX(-100%); animation: shimmer 2200ms linear infinite; mix-blend-mode: overlay; }
+                  .vip-pulse { animation: pulse 2200ms ease-in-out infinite; border-radius: 9999px; }
+                  .qr-glow { animation: glow 2600ms ease-in-out infinite; border-radius: 8px; }
+                  .sparkle { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: radial-gradient(circle,#fff,#ffe59e); opacity: .95; filter: blur(0.4px); }
+                `}</style>
+
                 <div className="flex items-stretch rounded-[1.5rem] overflow-hidden">
                   {/* Left main ticket area (dark/gold) */}
                   <div className="w-3/4 bg-gradient-to-b from-yellow-500 via-yellow-400 to-yellow-300 p-6 relative">
                     <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02),transparent)]" />
+                    <div className="shimmer-overlay"><div className="shimmer" /></div>
+                    <span className="sparkle" style={{left: '8%', top: '18%'}} />
+                    <span className="sparkle" style={{left: '22%', top: '28%'}} />
+                    <span className="sparkle" style={{left: '56%', top: '8%'}} />
+                    <span className="sparkle" style={{left: '68%', top: '36%'}} />
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/95">Delegate Pass</p>
+                        <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/95 vip-pulse">Delegate Pass</p>
                         <h2 className="mt-3 font-display text-2xl text-white drop-shadow-lg">{pass.eventName}</h2>
                         <p className="mt-1 text-sm text-white/90">Pass No: {pass.passNumber}</p>
                       </div>
-                      <div className="rounded-sm bg-white px-3 py-2 shadow-sm">
+                      <div className="rounded-sm bg-white px-3 py-2 shadow-sm vip-pulse" style={{boxShadow:'0 6px 20px rgba(255,220,120,0.35)'}}>
                         <img src={logo} alt="BioEnergy Global" className="h-10 w-auto object-contain" />
                       </div>
                     </div>
@@ -131,7 +147,7 @@ const RegistrationSuccess = () => {
 
                   {/* Right stub with QR (white) */}
                   <div className="w-1/4 bg-white p-4 flex flex-col items-center justify-center">
-                    <div className="bg-white p-2 rounded-md shadow-lg">
+                    <div className="bg-white p-2 rounded-md shadow-lg qr-glow" style={{borderRadius:12}}>
                       <QRCodeSVG value={qrPayload} size={160} includeMargin />
                     </div>
                     <div className="mt-4 text-sm text-gray-700 font-semibold">Admit</div>
