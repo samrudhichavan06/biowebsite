@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         </div>
 
         <p style="margin-top: 18px;">Please keep your QR visitor pass ready for entry at the venue.</p>
-        <p style="margin-top: 0; color: #3e5c4d;">Regards,<br />ACE Event Managers</p>
+        <p style="margin-top: 0; color: #3e5c4d;">Regards,<br />BioEnergy Global Team</p>
       </div>
     `;
 

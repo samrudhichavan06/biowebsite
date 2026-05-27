@@ -60,11 +60,11 @@ function getEmailTemplate(name, registrationCode, role, qrCodeUrl) {
             </ul>
             
             <p style="text-align: center;">
-              <a href="https://bioenergy-expo.com/my-badge" class="button">View My Badge Online</a>
+              <a href="https://bioenergy-global.com/my-badge" class="button">View My Badge Online</a>
             </p>
             
             <div class="footer">
-              <p>Need help? Contact us at support@bioenergy-expo.com or WhatsApp: +91-XXXX-XXXX-XXXX</p>
+              <p>Need help? Contact us at support@bioenergy-global.com or WhatsApp: +91-XXXX-XXXX-XXXX</p>
               <p>© 2026 Bioenergy Expo. All rights reserved.</p>
             </div>
           </div>

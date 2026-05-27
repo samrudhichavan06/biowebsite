@@ -90,7 +90,7 @@ const getSesConfig = () => {
   const awsAccessKeyId = getSanitizedEnvValue("AWS_ACCESS_KEY_ID", isLikelyAwsAccessKeyId);
   const awsSecretAccessKey = getSanitizedEnvValue("AWS_SECRET_ACCESS_KEY", isLikelyAwsSecretAccessKey);
   const awsSessionToken = getSanitizedEnvValue("AWS_SESSION_TOKEN");
-  const fromEmail = "sidbixx@gmail.com"; // Fixed verified sender address
+  const fromEmail = getEnvValue("AWS_SES_FROM_EMAIL") || "no-reply@bioenergy-global.com";
 
   return {
     awsRegion,
