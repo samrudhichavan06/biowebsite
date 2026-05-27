@@ -60,8 +60,6 @@ const RAZORPAY_KEY_ID = import.meta.env.VITE_RZP_KEY_ID || "YOUR_RAZORPAY_KEY_ID
 const GST_RATE = 0.18;
 const TEST_MODE = true; // Toggle to force test price
 const TEST_PRICE_RUPEES = 1;
-const EVENT_NAME = "Bioenergy Global 2026";
-const REGISTRATION_COLLECTION = "registrations_bioenergy_global_2026";
 
 function loadRazorpayScript() {
   return new Promise<boolean>((resolve) => {
@@ -158,6 +156,7 @@ export default function DelegateRegister() {
         address: address.trim(),
         mobile: mobileNumber.trim(),
         email: emailAddress.trim(),
+        receipt: `rcpt_${Date.now()}`,
         package_id: selectedPackageData.id,
         package_title: selectedPackageData.title,
         delegates: JSON.stringify([validDelegate]),
@@ -171,7 +170,7 @@ export default function DelegateRegister() {
         const createResp = await fetch(`/api/razorpay/create-order`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: TEST_MODE ? TEST_PRICE_RUPEES * 100 : grandTotal * 100, currency: "INR", receipt: `rcpt_${Date.now()}`, notes }),
+          body: JSON.stringify({ amount: TEST_MODE ? TEST_PRICE_RUPEES * 100 : grandTotal * 100, currency: "INR", receipt: notes.receipt, notes }),
         });
 
         const createJson = await createResp.json();
@@ -213,7 +212,7 @@ export default function DelegateRegister() {
                 const passObj = {
                   passNumber: registrationCode,
                   issuedAt: new Date().toISOString(),
-                  eventName: EVENT_NAME,
+                  eventName: "BioEnergy Global 2026",
                   attendeeType: "Delegate",
                   fullName: delegate.fullName.trim(),
                   email: emailAddress.trim(),
@@ -226,50 +225,9 @@ export default function DelegateRegister() {
 
                 sessionStorage.setItem("bioenergy_latest_pass", JSON.stringify(passObj));
 
-                // Background task: persist registration + generate badge + persist locally
+                // Background task: generate badge + persist locally and via API
                 (async () => {
                   try {
-                    const registrationPayload = {
-                      created_at: new Date().toISOString(),
-                      event_name: EVENT_NAME,
-                      full_name: delegate.fullName.trim(),
-                      email: emailAddress.trim(),
-                      phone: mobileNumber.trim(),
-                      company: companyName.trim(),
-                      designation: delegate.designation.trim(),
-                      country: "",
-                      attendee_type: "Delegate",
-                      interests: "",
-                      paymentId,
-                    };
-
-                    let recorded = false;
-                    try {
-                      const resp = await fetch("/api/razorpay/record-delegate", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(registrationPayload),
-                      });
-                      if (resp.ok) {
-                        recorded = true;
-                      } else {
-                        const errBody = await resp.json().catch(() => ({}));
-                        console.error("Server record-delegate failed:", errBody);
-                      }
-                    } catch (e) {
-                      console.error("Server record-delegate error:", e);
-                    }
-
-                    if (!recorded && db) {
-                      try {
-                        const regCol = fbCollection(db, REGISTRATION_COLLECTION);
-                        await addDoc(regCol, registrationPayload);
-                        recorded = true;
-                      } catch (e) {
-                        console.error("Firestore client write failed:", e);
-                      }
-                    }
-
                     const badgeRes = await generateAndSendBadge({
                       userId: paymentId || `temp_${Date.now()}`,
                       userRole: "delegate",
@@ -290,6 +248,76 @@ export default function DelegateRegister() {
                       localStorage.setItem("my_badges_v1", JSON.stringify(existing));
                     } catch (e) {
                       console.error("Failed to save badge locally:", e);
+                    }
+
+                    // Persist the delegate registration through the server first, then fall back to Firestore if needed.
+                    try {
+                      const recordResp = await fetch("/api/razorpay/record-delegate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          fullName: delegate.fullName.trim(),
+                          email: emailAddress.trim(),
+                          phone: mobileNumber.trim(),
+                          company: companyName.trim(),
+                          designation: delegate.designation.trim(),
+                          attendeeType: "Delegate",
+                          eventId: "bioenergy-global-2026",
+                          eventName: "Bioenergy Global 2026",
+                          packageId: selectedPackageData.id,
+                          packageTitle: selectedPackageData.title,
+                          paymentId,
+                          orderId: response.razorpay_order_id,
+                          receipt: notes?.receipt || `rcpt_${Date.now()}`,
+                          registrationCode,
+                          country: "",
+                          interests: "",
+                        }),
+                      });
+
+                      if (!recordResp.ok && db) {
+                        const timestamp = new Date().toISOString();
+                        const recordData = {
+                          created_at: timestamp,
+                          event_name: "Bioenergy Global 2026",
+                          full_name: delegate.fullName.trim(),
+                          email: emailAddress.trim(),
+                          phone: mobileNumber.trim(),
+                          company: companyName.trim(),
+                          designation: delegate.designation.trim(),
+                          country: "",
+                          attendee_type: "Delegate",
+                          interests: "",
+                          paymentId,
+                          orderId: response.razorpay_order_id,
+                          registrationCode,
+                        };
+
+                        await Promise.all([
+                          addDoc(fbCollection(db, "registrations_bioenergy_global_2026"), recordData),
+                          addDoc(fbCollection(db, "delegates"), {
+                            id: paymentId || response.razorpay_order_id || registrationCode,
+                            firstName: delegate.fullName.trim().split(/\s+/)[0] || delegate.fullName.trim(),
+                            lastName: delegate.fullName.trim().split(/\s+/).slice(1).join(" "),
+                            email: emailAddress.trim(),
+                            phone: mobileNumber.trim(),
+                            company: companyName.trim(),
+                            designation: delegate.designation.trim(),
+                            passType: "vip",
+                            agendaDownloaded: false,
+                            certificateGenerated: false,
+                            eventId: "bioenergy-global-2026",
+                            createdAt: timestamp,
+                            updatedAt: timestamp,
+                            paymentId,
+                            orderId: response.razorpay_order_id,
+                            attendeeType: "Delegate",
+                            fullName: delegate.fullName.trim(),
+                          }),
+                        ]);
+                      }
+                    } catch (e) {
+                      console.error("Failed to persist delegate registration:", e);
                     }
                   } catch (err) {
                     console.error("Background badge generation failed:", err);
