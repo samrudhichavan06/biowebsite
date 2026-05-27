@@ -204,32 +204,59 @@ export default function DelegateRegister() {
               const paymentId = response.razorpay_payment_id ?? "";
               alert(`Payment successful! Payment ID: ${paymentId || "N/A"}`);
 
-              // Generate badge and persist client-side + Firestore via badgeService
+              // Prepare pass and redirect immediately; run badge generation in background
               try {
-                const badgeRes = await generateAndSendBadge({
-                  userId: paymentId || `temp_${Date.now()}`,
-                  userRole: "delegate",
-                  userEmail: emailAddress.trim(),
-                  userName: delegate.fullName.trim(),
-                });
-
-                const saved = {
-                  paymentId,
-                  orderId: response.razorpay_order_id,
-                  badge: badgeRes,
-                  createdAt: new Date().toISOString(),
+                const registrationCode = `RCPT-${Date.now()}`;
+                const passObj = {
+                  passNumber: registrationCode,
+                  issuedAt: new Date().toISOString(),
+                  eventName: "BioEnergy Global 2026",
+                  attendeeType: "Delegate",
+                  fullName: delegate.fullName.trim(),
+                  email: emailAddress.trim(),
+                  phone: mobileNumber.trim(),
+                  company: companyName.trim(),
+                  designation: delegate.designation.trim(),
+                  country: "",
+                  interests: "",
                 };
 
-                // Save to localStorage for future download
-                try {
-                  const existing = JSON.parse(localStorage.getItem("my_badges_v1") || "[]");
-                  existing.push(saved);
-                  localStorage.setItem("my_badges_v1", JSON.stringify(existing));
-                } catch (e) {
-                  console.error("Failed to save badge locally:", e);
-                }
-              } catch (err) {
-                console.error("Badge generation failed:", err);
+                sessionStorage.setItem("bioenergy_latest_pass", JSON.stringify(passObj));
+
+                // Background task: generate badge + persist locally and via API
+                (async () => {
+                  try {
+                    const badgeRes = await generateAndSendBadge({
+                      userId: paymentId || `temp_${Date.now()}`,
+                      userRole: "delegate",
+                      userEmail: emailAddress.trim(),
+                      userName: delegate.fullName.trim(),
+                    });
+
+                    const saved = {
+                      paymentId,
+                      orderId: response.razorpay_order_id,
+                      badge: badgeRes,
+                      createdAt: new Date().toISOString(),
+                    };
+
+                    try {
+                      const existing = JSON.parse(localStorage.getItem("my_badges_v1") || "[]");
+                      existing.push(saved);
+                      localStorage.setItem("my_badges_v1", JSON.stringify(existing));
+                    } catch (e) {
+                      console.error("Failed to save badge locally:", e);
+                    }
+                  } catch (err) {
+                    console.error("Background badge generation failed:", err);
+                  }
+                })();
+
+                // Redirect user to the pass page right away
+                window.location.href = "/registration-success";
+                return;
+              } catch (e) {
+                console.error("Failed to prepare redirect pass:", e);
               }
             } catch (e) {
               console.error(e);

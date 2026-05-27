@@ -29,10 +29,6 @@ const RegistrationSuccess = () => {
   const [pass, setPass] = useState<LatestPass | null>(null);
   const passCardRef = useRef<HTMLDivElement | null>(null);
 
-  const isVIP = pass?.attendeeType?.toLowerCase() === "vip" || pass?.attendeeType?.toLowerCase() === "v.i.p";
-  const vipGradient = "bg-gradient-to-br from-[#6b2b80] via-[#d4a017] to-[#f6e27a]"; // purple -> gold
-  const standardGradient = "bg-gradient-to-br from-[#0a4762] via-[#11759c] to-[#42c7a5]";
-
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(passStorageKey);
@@ -97,15 +93,15 @@ const RegistrationSuccess = () => {
 
               <div
                 ref={passCardRef}
-                className={`relative mt-5 overflow-hidden rounded-[2rem] p-5 text-white shadow-[0_18px_45px_rgba(31,47,35,0.24)] ${isVIP ? vipGradient : standardGradient}`}
+                className="relative mt-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0a4762] via-[#11759c] to-[#42c7a5] p-5 text-white shadow-[0_18px_45px_rgba(31,47,35,0.24)]"
               >
                 <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/15 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-black/20 blur-3xl" />
 
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-[70%]">
-                    <p className="inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ backgroundColor: isVIP ? 'rgba(255, 255, 255, 0.12)' : undefined }}>
-                      {isVIP ? 'VIP Pass' : 'Visitor Pass'}
+                    <p className="inline-flex rounded-full bg-white/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em]">
+                      Visitor Pass
                     </p>
                     <h2 className="mt-3 font-display text-[1.7rem] leading-[1.05] sm:text-[1.95rem]">{pass.eventName}</h2>
                     <p className="mt-1 text-xs font-medium text-white/85">Pass No: {pass.passNumber}</p>
@@ -137,8 +133,8 @@ const RegistrationSuccess = () => {
                 </p>
               </div>
 
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <Button type="button" className={`gap-2 rounded-full px-5 ${isVIP ? 'bg-[#d4a017] hover:bg-[#b88912] text-black' : 'bg-[#3d8f1e] hover:bg-[#2f7614] text-white'}`} onClick={handleDownloadPass}>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <Button type="button" className="gap-2 rounded-full bg-[#3d8f1e] px-5 hover:bg-[#2f7614]" onClick={handleDownloadPass}>
                   <Download className="h-4 w-4" />
                   Download Pass
                 </Button>
