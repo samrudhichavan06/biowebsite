@@ -1,4 +1,8 @@
-import { sendJson, parseJsonBody, applyEmailCorsHeaders } from "../_lib/email.js";
+import {
+  sendJson,
+  parseJsonBody,
+  applyEmailCorsHeaders,
+} from "../_lib/email.js";
 
 export default async function handler(req, res) {
   applyEmailCorsHeaders(res);
@@ -39,7 +43,10 @@ export default async function handler(req, res) {
         if (idx === -1) continue;
         const k = trimmed.slice(0, idx).trim();
         let v = trimmed.slice(idx + 1).trim();
-        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        if (
+          (v.startsWith('"') && v.endsWith('"')) ||
+          (v.startsWith("'") && v.endsWith("'"))
+        ) {
           v = v.slice(1, -1);
         }
         if (!process.env[k]) process.env[k] = v;
@@ -55,7 +62,9 @@ export default async function handler(req, res) {
   const keySecret = process.env.RZP_KEY_SECRET || "";
 
   if (!keyId || !keySecret) {
-    return sendJson(res, 500, { error: "Razorpay keys are not configured on the server" });
+    return sendJson(res, 500, {
+      error: "Razorpay keys are not configured on the server",
+    });
   }
 
   try {

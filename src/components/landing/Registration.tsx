@@ -169,13 +169,36 @@ export function EventRegistrationForm({ event }: { event: RegistrationEvent }) {
     setGeneratedPass(attendeePass);
 
     try {
+      localStorage.setItem("bioenergy_latest_pass", JSON.stringify({
+        eventId: attendeePass.eventId,
+        passNumber: attendeePass.passNumber,
+        issuedAt: attendeePass.issuedAt,
+        eventName: attendeePass.eventName,
+        attendeeType: attendeePass.attendeeType,
+        fullName: attendeePass.fullName,
+        email: attendeePass.email,
+        phone: attendeePass.phone,
+        company: attendeePass.company,
+        designation: attendeePass.designation,
+        country: attendeePass.country,
+        interests: attendeePass.interests,
+      }));
+    } catch (error) {
+      console.error("Failed to persist visitor pass locally:", error);
+    }
+
+    try {
       await sendAttendeeConfirmationEmail(attendeePass);
       toast.success(`Registration confirmed for ${event.name}`, {
         description: `A confirmation email was sent to ${submittedValues.email}.`,
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "unknown error";
+      const isSesVerificationError = /Email address is not verified|identity failed the check|domain is not verified|identity must be verified/i.test(errorMessage);
       toast.success(`Registration received for ${event.name}`, {
-        description: `Pass created successfully. Email could not be sent: ${error instanceof Error ? error.message : "unknown error"}.`,
+        description: isSesVerificationError
+          ? `Pass created successfully. Email delivery is blocked until SES recipient verification or production access is enabled.`
+          : `Pass created successfully. Email could not be sent: ${errorMessage}.`,
       });
     }
 

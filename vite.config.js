@@ -85,10 +85,12 @@ const serveLocalApiRoutes = (applyEmailEnv) => ({
       } catch (error) {
         res.statusCode = 500;
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({
-          error: "Failed to run local API handler",
-          details: error instanceof Error ? error.message : String(error),
-        }));
+        res.end(
+          JSON.stringify({
+            error: "Failed to run local API handler",
+            details: error instanceof Error ? error.message : String(error),
+          }),
+        );
       }
     });
   },
@@ -98,7 +100,12 @@ export default defineConfig(({ mode }) => {
   const loadedEnv = loadEnv(mode, process.cwd(), "");
 
   const applyEmailEnv = () => {
-    for (const key of ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SES_FROM_EMAIL"]) {
+    for (const key of [
+      "AWS_REGION",
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_SES_FROM_EMAIL",
+    ]) {
       if (loadedEnv[key]) {
         process.env[key] = loadedEnv[key];
       }
@@ -106,10 +113,7 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
-    plugins: [
-      react(),
-      serveLocalApiRoutes(applyEmailEnv),
-    ],
+    plugins: [react(), serveLocalApiRoutes(applyEmailEnv)],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

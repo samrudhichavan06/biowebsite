@@ -9,6 +9,7 @@ Bioenergy Expo 2026 is now a world-class international expo platform with **4 de
 ## 🏗️ Architecture
 
 ### Technology Stack
+
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + Radix UI components
 - **Database**: Firebase Firestore
@@ -36,7 +37,9 @@ Firestore Database Structure:
 ## 👥 Four Registration Zones
 
 ### 1. **Visitor Zone** 🎫
+
 **Purpose**: Simple, fast registration for event visitors
+
 - **URL**: `/visitor/register`
 - **Features**:
   - 1-minute registration
@@ -48,7 +51,9 @@ Firestore Database Structure:
 - **Dashboard**: `/dashboard`
 
 ### 2. **Exhibitor Zone** 🏪
+
 **Purpose**: Comprehensive booth management for companies
+
 - **URL**: `/exhibitor/register`
 - **Features**:
   - Company profile management
@@ -62,7 +67,9 @@ Firestore Database Structure:
 - **Dashboard**: `/exhibitor/panel`
 
 ### 3. **Delegate / Conference Zone** 🎤
+
 **Purpose**: Conference registration with speaker management
+
 - **URL**: `/delegate/register`
 - **Features**:
   - Pass type selection (Standard/VIP/Speaker)
@@ -74,7 +81,9 @@ Firestore Database Structure:
   - Priority support
 
 ### 4. **Fabricator / Vendor Zone** 🔧
+
 **Purpose**: Manufacturing partner coordination
+
 - **URL**: `/fabricator/register`
 - **Features**:
   - Multi-specialization selection
@@ -92,6 +101,7 @@ Firestore Database Structure:
 ### Authentication System (`src/lib/auth.ts`)
 
 **User Roles** (Hierarchy):
+
 1. **Admin** (Level 5) - Full platform control
 2. **Delegate** (Level 4) - Conference priority access
 3. **Fabricator** (Level 3) - Vendor tools
@@ -102,23 +112,24 @@ Firestore Database Structure:
 
 ```typescript
 // Current user info
-getCurrentUser()              // Returns AuthUser
-getCurrentRole()              // Returns role
-isAuthenticated()             // Check auth status
+getCurrentUser(); // Returns AuthUser
+getCurrentRole(); // Returns role
+isAuthenticated(); // Check auth status
 
 // Login/Logout
-setAuthUser(user)             // Create session
-clearAuth()                   // Logout
+setAuthUser(user); // Create session
+clearAuth(); // Logout
 
 // Permissions
-hasPermission(role)           // Check required role
-hasAnyRole([roles])           // Multiple role check
+hasPermission(role); // Check required role
+hasAnyRole([roles]); // Multiple role check
 
 // Role checks
-isExhibitor(), isVisitor(), isDelegate(), isFabricator(), isAdmin()
+(isExhibitor(), isVisitor(), isDelegate(), isFabricator(), isAdmin());
 ```
 
 ### Session Management
+
 - Sessions stored in `sessionStorage`
 - Persists across page refreshes
 - Cleared on logout
@@ -148,6 +159,7 @@ markBadgeAsScanned()          // Track entry
 ```
 
 ### Registration Code Format
+
 ```
 {TIMESTAMP}-{RANDOM}
 Example: 2AB5K-X4YZ9W
@@ -158,6 +170,7 @@ Example: 2AB5K-X4YZ9W
 ## 📬 Notification System (`src/lib/notificationService.ts`)
 
 ### Features
+
 - **In-app Notifications**: Displayed in user dashboard
 - **Email Notifications**: Branded templates with AWS SES
 - **Role-based**: Target specific user roles
@@ -180,6 +193,7 @@ notifyDesignApproval()         // For fabricators
 ```
 
 ### API Endpoints
+
 - `POST /api/send-notification-email` - Email notifications
 - `POST /api/send-badge-email` - Badge emails
 
@@ -190,12 +204,14 @@ notifyDesignApproval()         // For fabricators
 **URL**: `/downloads`
 
 ### Features
+
 - **Category Filtering**: By user role (Exhibitor, Visitor, Delegate, Fabricator)
 - **File Types**: Brochures, Floor Plans, Manuals, Agendas, Guidelines
 - **Responsive Grid**: Auto-adapts to screen size
 - **Direct Downloads**: One-click file access
 
 ### Firestore Collection Structure
+
 ```typescript
 {
   id: string
@@ -217,6 +233,7 @@ notifyDesignApproval()         // For fabricators
 **URL**: `/dashboard`
 
 ### User Dashboard Features
+
 - **Profile Information**: Display all user data
 - **Quick Stats**: Status, Notifications, Resources, Badge
 - **Tabs**:
@@ -226,6 +243,7 @@ notifyDesignApproval()         // For fabricators
   - Role-specific tools (Exhibitor/Fabricator)
 
 ### Role-Specific Tools
+
 - **Exhibitor**: Stall allocation, payment status, materials upload
 - **Fabricator**: Design submission, approval tracking
 
@@ -236,6 +254,7 @@ notifyDesignApproval()         // For fabricators
 **URL**: `/`
 
 ### Sections
+
 1. **Navigation**: Hero menu with zone links
 2. **Hero Section**: Main value proposition
 3. **Four Zones**: Register now buttons for each zone
@@ -247,6 +266,7 @@ notifyDesignApproval()         // For fabricators
 9. **Footer**: Links, contact, WhatsApp
 
 ### Zones Component (`src/components/landing/Zones.tsx`)
+
 - Beautiful card layouts
 - Gradient backgrounds (role-specific colors)
 - Feature highlights
@@ -258,6 +278,7 @@ notifyDesignApproval()         // For fabricators
 ## 📞 Contact & Communication
 
 ### WhatsApp Integration
+
 - **Floating Button**: Fixed position on all pages
 - **URL**: `/`
 - **Link**: `https://wa.me/919142659818`
@@ -265,6 +286,7 @@ notifyDesignApproval()         // For fabricators
 - **Footer CTA**: Direct WhatsApp button
 
 ### Contact Information
+
 - **Email**: info@meeratradefair.com
 - **Phone**: +91 9142 659 818 | +91 7011 807 613
 - **WhatsApp**: +91 9142 659 818
@@ -286,6 +308,7 @@ Admin:            Red → Pink (from-red-600 to-pink-600)
 ## 🚀 Deployment & Environment
 
 ### Environment Variables (.env)
+
 ```
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
@@ -300,9 +323,11 @@ AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_SES_FROM_EMAIL=sidbixx@gmail.com
 ```
+
 Note: The application is configured to send SES email from the verified sender `sidbixx@gmail.com`. In sandbox mode, you also must verify recipient addresses or request production access.
 
 ### Build & Run
+
 ```bash
 # Development
 npm run dev          # Vite dev server on port 5173
@@ -324,6 +349,7 @@ npm run test:watch   # Watch mode
 ## 📱 Mobile Optimization
 
 All pages are fully responsive:
+
 - **Mobile First**: Designed for small screens first
 - **Breakpoints**: Tailwind's sm, md, lg, xl breakpoints
 - **Touch-friendly**: Buttons min 44px height
@@ -335,6 +361,7 @@ All pages are fully responsive:
 ## 🔄 Workflow Examples
 
 ### Visitor Registration Flow
+
 ```
 1. Click "Visitor Register" on landing page
 2. Fill name, email, phone, company, designation
@@ -346,6 +373,7 @@ All pages are fully responsive:
 ```
 
 ### Exhibitor Registration Flow
+
 ```
 1. Click "Exhibitor Register" on landing page
 2. Step 1: Company & contact info
@@ -358,6 +386,7 @@ All pages are fully responsive:
 ```
 
 ### Fabricator Workflow
+
 ```
 1. Register as fabricator
 2. Accept guidelines
@@ -374,6 +403,7 @@ All pages are fully responsive:
 ## 🔧 Maintenance & Admin Tasks
 
 ### Admin Dashboard (`/admin`)
+
 - **Credentials**: Username & password from env vars
 - **Features**:
   - View all registrations
@@ -383,12 +413,14 @@ All pages are fully responsive:
   - Live statistics
 
 ### Database Maintenance
+
 - Monitor Firestore usage
 - Archive old records
 - Clean up unused files
 - Backup regular data exports
 
 ### Email Management
+
 - Monitor SES quota
 - Check bounce rates
 - Update email templates
@@ -399,12 +431,14 @@ All pages are fully responsive:
 ## 📚 Additional Resources
 
 ### Documentation Links
+
 - [Firestore Documentation](https://firebase.google.com/docs/firestore)
 - [React Router Guide](https://reactrouter.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Radix UI Components](https://www.radix-ui.com/)
 
 ### API References
+
 - [AWS SES](https://docs.aws.amazon.com/ses/)
 - [QRCode.react](https://www.npmjs.com/package/qrcode.react)
 - [Firebase Auth](https://firebase.google.com/docs/auth)
@@ -416,6 +450,7 @@ All pages are fully responsive:
 ### Common Issues
 
 **Email not sending?**
+
 - Check AWS SES configuration
 - Verify email is not in quarantine
 - Check email quota limits
@@ -423,16 +458,19 @@ All pages are fully responsive:
 - To send to arbitrary attendee emails, request SES production access from AWS and move the account out of sandbox mode
 
 **Badge not generating?**
+
 - Ensure qrcode.react is installed
 - Check browser canvas support
 - Verify Firestore permissions
 
 **Users can't login?**
+
 - Clear browser cache/sessionStorage
 - Check user role in Firestore
 - Verify Firestore rules allow read
 
 **WhatsApp not working?**
+
 - Check phone number format
 - Ensure WhatsApp Business account active
 - Test link on mobile device
@@ -457,6 +495,7 @@ All pages are fully responsive:
 ## 📞 Support & Contact
 
 For questions or issues:
+
 - **Email**: info@meeratradefair.com
 - **Phone**: +91 9142 659 818
 - **WhatsApp**: +91 9142 659 818

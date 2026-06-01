@@ -268,7 +268,9 @@
 }
 
 .whatsapp-float {
-  animation: whatsapp-float 3.2s ease-in-out infinite, whatsapp-flash 1.8s ease-in-out infinite;
+  animation:
+    whatsapp-float 3.2s ease-in-out infinite,
+    whatsapp-flash 1.8s ease-in-out infinite;
   will-change: transform, box-shadow;
 }
 
@@ -333,7 +335,8 @@
 }
 
 /* Global defaults for browsers that support native scrollbar properties */
-html, body {
+html,
+body {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
@@ -363,7 +366,7 @@ html, body {
 
 /* Provide a small inset highlight for deeper visual separation */
 .scrollbar-custom::-webkit-scrollbar-thumb:active {
-  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 /* Hide scrollbars on small screens (mobile) while keeping scrolling functional */
@@ -386,4 +389,3 @@ html, body {
     background: transparent;
   }
 }
-

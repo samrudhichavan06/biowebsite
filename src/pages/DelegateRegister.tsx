@@ -210,6 +210,7 @@ export default function DelegateRegister() {
               try {
                 const registrationCode = `RCPT-${Date.now()}`;
                 const passObj = {
+                  eventId: "bioenergy-global-2026",
                   passNumber: registrationCode,
                   issuedAt: new Date().toISOString(),
                   eventName: "BioEnergy Global 2026",
@@ -224,6 +225,11 @@ export default function DelegateRegister() {
                 };
 
                 sessionStorage.setItem("bioenergy_latest_pass", JSON.stringify(passObj));
+                try {
+                  localStorage.setItem("bioenergy_latest_pass", JSON.stringify(passObj));
+                } catch (e) {
+                  console.error("Failed to save pass locally:", e);
+                }
 
                 // Background task: generate badge + persist locally and via API
                 (async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import heroImg from "@/assets/hero-bioenergy.jpg";
 import bio from "@/assets/event-bioenergy.jpg";
 import ren from "@/assets/event-reneweex.jpg";
@@ -9,6 +9,8 @@ import logoRen from "@/assets/logo-reneweex.png";
 import logoWte from "@/assets/logo-wte.png";
 import logoNcbi from "@/assets/logo-ncbi-white.png";
 import { Link } from "react-router-dom";
+import html2canvas from "html2canvas";
+import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowUpRight,
   MapPin,
@@ -21,7 +23,23 @@ import {
   Sparkles,
   Users,
   Crown,
+  Download,
 } from "lucide-react";
+
+type SavedPass = {
+  eventId?: string;
+  passNumber: string;
+  issuedAt: string;
+  eventName: string;
+  attendeeType: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  company: string;
+  designation: string;
+  country: string;
+  interests: string;
+};
 
 const heroEvents = [
   {
@@ -97,10 +115,30 @@ const tickerItems = [
 
 export const Hero = () => {
   const [active, setActive] = useState(0);
+  const [savedPass, setSavedPass] = useState<SavedPass | null>(null);
+  const savedPassRef = useRef<HTMLDivElement | null>(null);
   const current = heroEvents[active];
+  const savedEvent = savedPass
+    ? heroEvents.find(
+        (event) =>
+          event.id === savedPass.eventId ||
+          event.name.toLowerCase() === savedPass.eventName.toLowerCase() ||
+          event.name.toLowerCase().includes(savedPass.eventName.toLowerCase()),
+      ) ?? null
+    : null;
+  const isDelegatePass = savedPass?.attendeeType?.toLowerCase() === "delegate";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("bioenergy_latest_pass");
+      if (raw) {
+        setSavedPass(JSON.parse(raw) as SavedPass);
+      }
+    } catch {
+      setSavedPass(null);
+    }
+
     const videos = Array.from(document.querySelectorAll("video[data-src]")) as HTMLVideoElement[];
     if (!videos.length) return;
 
@@ -123,6 +161,41 @@ export const Hero = () => {
 
     return () => io.disconnect();
   }, []);
+
+  const handleDownloadSavedPass = async () => {
+    if (!savedPassRef.current || !savedPass) return;
+
+    const canvas = await html2canvas(savedPassRef.current, {
+      backgroundColor: null,
+      scale: 2,
+      useCORS: true,
+    });
+
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `pass-${savedPass.passNumber}.png`;
+    link.click();
+  };
+
+  const savedPassQrPayload = savedPass
+    ? JSON.stringify(
+        {
+          pass_number: savedPass.passNumber,
+          issued_at: savedPass.issuedAt,
+          event_name: savedPass.eventName,
+          full_name: savedPass.fullName,
+          email: savedPass.email,
+          phone: savedPass.phone,
+          company: savedPass.company,
+          designation: savedPass.designation,
+          country: savedPass.country,
+          attendee_type: savedPass.attendeeType,
+          interests: savedPass.interests,
+        },
+        null,
+        0,
+      )
+    : "";
 
   return (
     <section className="relative overflow-hidden">
@@ -282,6 +355,70 @@ export const Hero = () => {
             bioenergy, renewables, waste-to-energy and net-zero policy.
           </p>
 
+          {savedPass && (
+            <div className="mt-8 max-w-2xl rounded-[1.6rem] border border-yellow-200/70 bg-gradient-to-br from-[#fff8da] via-[#fff1b8] to-[#ffd86a] p-4 shadow-[0_18px_50px_rgba(160,120,30,0.18)] sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700">Saved Pass</p>
+                  <h3 className="mt-1 font-display text-2xl text-foreground">{savedPass.eventName}</h3>
+                  <p className="mt-1 text-sm text-foreground/70">{savedPass.fullName} · {savedPass.passNumber}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadSavedPass}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#1f6b2f] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(31,107,47,0.25)] transition hover:-translate-y-0.5"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Pass
+                </button>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-[1.25rem] bg-gradient-to-r from-[#111827] to-[#1f2937] p-0 text-white shadow-xl">
+                <div ref={savedPassRef} className="flex flex-col overflow-hidden md:flex-row">
+                  <div
+                    className={`relative w-full p-4 md:w-3/4 ${isDelegatePass ? "bg-gradient-to-b from-yellow-500 via-yellow-400 to-yellow-300" : "bg-gradient-to-b from-[#0a4762] via-[#11759c] to-[#42c7a5]"}`}
+                  >
+                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.06),transparent)]" />
+                    <div className="relative z-10 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="inline-flex rounded-full bg-white/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white">
+                          {isDelegatePass ? "Delegate Pass" : "Visitor Pass"}
+                        </p>
+                        <h4 className="mt-3 font-display text-2xl leading-tight text-white sm:text-3xl">{savedPass.eventName}</h4>
+                        <p className="mt-1 text-sm text-white/90">Pass No: {savedPass.passNumber}</p>
+                      </div>
+                      <div className="rounded-sm bg-white px-2 py-2 shadow-sm sm:px-3">
+                        {savedEvent?.logo ? (
+                          <img src={savedEvent.logo} alt={savedPass.eventName} className="h-8 w-auto object-contain sm:h-10" />
+                        ) : (
+                          <span className="text-xs font-semibold text-emerald-800">BioEnergy</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-1 gap-2 text-white/95 sm:grid-cols-2">
+                      <div className="text-sm"><span className="font-medium">Name:</span> {savedPass.fullName}</div>
+                      <div className="text-sm"><span className="font-medium">Email:</span> {savedPass.email}</div>
+                      {savedPass.phone && <div className="text-sm"><span className="font-medium">Phone:</span> {savedPass.phone}</div>}
+                      {savedPass.company && <div className="text-sm"><span className="font-medium">Company:</span> {savedPass.company}</div>}
+                      <div className="text-sm"><span className="font-medium">Type:</span> {savedPass.attendeeType}</div>
+                      {savedPass.designation && <div className="text-sm"><span className="font-medium">Designation:</span> {savedPass.designation}</div>}
+                    </div>
+                  </div>
+
+                  <div className="h-0.5 w-full bg-white/25 md:h-auto md:w-0.5" />
+
+                  <div className="flex w-full flex-col items-center justify-center bg-white p-4 md:w-1/4">
+                    <div className="rounded-md bg-white p-2 shadow-lg">
+                      <QRCodeSVG value={savedPassQrPayload} size={140} includeMargin />
+                    </div>
+                    <div className="mt-3 text-sm font-semibold text-gray-700">Admit</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* CTA cluster */}
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <a
@@ -294,7 +431,7 @@ export const Hero = () => {
               </span>
             </a>
             <a
-              href="#events"
+              href="/exhibitor/register"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-background/60 px-5 py-3 text-sm font-medium backdrop-blur transition hover:bg-foreground/5"
             >
               <Plus className="h-4 w-4" /> Become an exhibitor

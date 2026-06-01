@@ -8,15 +8,21 @@ const isConfiguredValue = (value) => {
   return Boolean(normalizedValue) && !normalizedValue.startsWith("YOUR_");
 };
 
-const isLikelyAwsAccessKeyId = (value) => /^A(?:KIA|SIA)[A-Z0-9]{16}$/.test(String(value ?? "").trim());
+const isLikelyAwsAccessKeyId = (value) =>
+  /^A(?:KIA|SIA)[A-Z0-9]{16}$/.test(String(value ?? "").trim());
 
-const isLikelyAwsSecretAccessKey = (value) => /^[A-Za-z0-9/+=]{40}$/.test(String(value ?? "").trim());
+const isLikelyAwsSecretAccessKey = (value) =>
+  /^[A-Za-z0-9/+=]{40}$/.test(String(value ?? "").trim());
 
 const getSanitizedEnvValue = (key, validator) => {
   const localEnv = readLocalEnvFile();
   const localValue = String(localEnv[key] ?? "").trim();
   const runtimeValue = String(process.env[key] ?? "").trim();
-  const candidate = isConfiguredValue(localValue) ? localValue : isConfiguredValue(runtimeValue) ? runtimeValue : "";
+  const candidate = isConfiguredValue(localValue)
+    ? localValue
+    : isConfiguredValue(runtimeValue)
+      ? runtimeValue
+      : "";
 
   if (!candidate) {
     delete process.env[key];
@@ -60,7 +66,10 @@ const readLocalEnvFile = () => {
       const key = trimmedLine.slice(0, equalsIndex).trim();
       let value = trimmedLine.slice(equalsIndex + 1).trim();
 
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1);
       }
 
@@ -87,10 +96,17 @@ const getEnvValue = (key) => {
 
 const getSesConfig = () => {
   const awsRegion = getEnvValue("AWS_REGION");
-  const awsAccessKeyId = getSanitizedEnvValue("AWS_ACCESS_KEY_ID", isLikelyAwsAccessKeyId);
-  const awsSecretAccessKey = getSanitizedEnvValue("AWS_SECRET_ACCESS_KEY", isLikelyAwsSecretAccessKey);
+  const awsAccessKeyId = getSanitizedEnvValue(
+    "AWS_ACCESS_KEY_ID",
+    isLikelyAwsAccessKeyId,
+  );
+  const awsSecretAccessKey = getSanitizedEnvValue(
+    "AWS_SECRET_ACCESS_KEY",
+    isLikelyAwsSecretAccessKey,
+  );
   const awsSessionToken = getSanitizedEnvValue("AWS_SESSION_TOKEN");
-  const fromEmail = getEnvValue("AWS_SES_FROM_EMAIL") || "no-reply@bioenergy-global.com";
+  const fromEmail =
+    getEnvValue("AWS_SES_FROM_EMAIL") || "no-reply@bioenergy-global.com";
 
   return {
     awsRegion,
@@ -101,12 +117,19 @@ const getSesConfig = () => {
   };
 };
 
-const createSesClient = ({ awsRegion, awsAccessKeyId, awsSecretAccessKey, awsSessionToken }) => {
+const createSesClient = ({
+  awsRegion,
+  awsAccessKeyId,
+  awsSecretAccessKey,
+  awsSessionToken,
+}) => {
   if (!awsRegion) {
     return null;
   }
 
-  const useExplicitCredentials = isLikelyAwsAccessKeyId(awsAccessKeyId) && isLikelyAwsSecretAccessKey(awsSecretAccessKey);
+  const useExplicitCredentials =
+    isLikelyAwsAccessKeyId(awsAccessKeyId) &&
+    isLikelyAwsSecretAccessKey(awsSecretAccessKey);
 
   return new SESv2Client({
     region: awsRegion,
@@ -115,7 +138,9 @@ const createSesClient = ({ awsRegion, awsAccessKeyId, awsSecretAccessKey, awsSes
           credentials: {
             accessKeyId: awsAccessKeyId,
             secretAccessKey: awsSecretAccessKey,
-            ...(isConfiguredValue(awsSessionToken) ? { sessionToken: awsSessionToken } : {}),
+            ...(isConfiguredValue(awsSessionToken)
+              ? { sessionToken: awsSessionToken }
+              : {}),
           },
         }
       : {}),
@@ -139,10 +164,13 @@ export const sendJson = (res, status, body) => {
 export const applyEmailCorsHeaders = (res) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT",
+  );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
   );
 };
 
@@ -222,17 +250,25 @@ async function sendViaSes({ to, subject, html, text }) {
     const message = error instanceof Error ? error.message : String(error);
 
     if (/Could not load credentials from any providers/i.test(message)) {
-      throw new Error("AWS SES credentials are missing. Set a valid AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or configure AWS_PROFILE/AWS_SESSION_TOKEN.");
+      throw new Error(
+        "AWS SES credentials are missing. Set a valid AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or configure AWS_PROFILE/AWS_SESSION_TOKEN.",
+      );
     }
 
     if (/request signature we calculated does not match/i.test(message)) {
-      throw new Error("AWS SES signature failed. The AWS secret access key is invalid or incomplete.");
+      throw new Error(
+        "AWS SES signature failed. The AWS secret access key is invalid or incomplete.",
+      );
     }
 
-    if (/(Email address is not verified|identity failed the check|domain is not verified|identity must be verified)/i.test(message)) {
+    if (
+      /(Email address is not verified|identity failed the check|domain is not verified|identity must be verified)/i.test(
+        message,
+      )
+    ) {
       throw new Error(
         "AWS SES cannot send to this recipient because the destination identity is not verified in the selected region. " +
-        "If your SES account is in sandbox mode, verify the recipient email or request production access."
+          "If your SES account is in sandbox mode, verify the recipient email or request production access.",
       );
     }
 

@@ -1,4 +1,8 @@
-import { applyEmailCorsHeaders, getEmailServiceStatus, sendJson } from "./_lib/email.js";
+import {
+  applyEmailCorsHeaders,
+  getEmailServiceStatus,
+  sendJson,
+} from "./_lib/email.js";
 
 export default async function handler(req, res) {
   applyEmailCorsHeaders(res);

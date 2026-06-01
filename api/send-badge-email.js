@@ -8,11 +8,12 @@ import {
 } from "./_lib/email.js";
 
 function getEmailTemplate(name, registrationCode, role, qrCodeUrl) {
-  const roleLabel = {
-    visitor: "Visitor",
-    delegate: "Delegate",
-    exhibitor: "Exhibitor",
-  }[role] || role;
+  const roleLabel =
+    {
+      visitor: "Visitor",
+      delegate: "Delegate",
+      exhibitor: "Exhibitor",
+    }[role] || role;
 
   return `
     <!DOCTYPE html>
@@ -93,17 +94,24 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: "Invalid JSON body" });
   }
 
-  const { email, name, qrCodeUrl, registrationCode, role, badgeId } = parsedBody;
+  const { email, name, qrCodeUrl, registrationCode, role, badgeId } =
+    parsedBody;
 
   // Validation
   if (!email || !name || !qrCodeUrl || !registrationCode || !role) {
     return sendJson(res, 400, {
-      error: "Missing required fields: email, name, qrCodeUrl, registrationCode, role",
+      error:
+        "Missing required fields: email, name, qrCodeUrl, registrationCode, role",
     });
   }
 
   try {
-    const htmlContent = getEmailTemplate(name, registrationCode, role, qrCodeUrl);
+    const htmlContent = getEmailTemplate(
+      name,
+      registrationCode,
+      role,
+      qrCodeUrl,
+    );
 
     const result = await sendEmail({
       to: email,

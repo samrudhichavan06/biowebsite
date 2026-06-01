@@ -3,7 +3,8 @@
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 16+ 
+
+- Node.js 16+
 - npm or yarn
 - Firebase project setup
 - AWS SES configured
@@ -35,21 +36,25 @@ npm run dev
 ## 📁 Key Files to Know
 
 ### Authentication
+
 - `src/lib/auth.ts` - User authentication & RBAC
 - `src/lib/adminAuth.ts` - Admin authentication (legacy)
 - `src/lib/exhibitorAuth.ts` - Exhibitor session (legacy)
 
 ### Collections & Data
+
 - `src/lib/collections.ts` - Firestore schemas & types
 - `src/lib/events.ts` - Event catalog
 - `src/lib/firebase.ts` - Firebase config
 
 ### Services
+
 - `src/lib/badgeService.ts` - QR badge generation
 - `src/lib/notificationService.ts` - Notifications
 - `src/lib/utils.ts` - Utility functions
 
 ### Pages
+
 - `src/pages/Index.tsx` - Landing page
 - `src/pages/VisitorRegister.tsx` - Visitor zone
 - `src/pages/ExhibitorRegister.tsx` - Exhibitor zone (existing, enhanced)
@@ -60,12 +65,14 @@ npm run dev
 - `src/pages/AdminDashboard.tsx` - Admin panel
 
 ### Components
+
 - `src/components/landing/` - Landing page components
 - `src/components/landing/Zones.tsx` - Zone showcase
 - `src/components/landing/Footer.tsx` - Footer with WhatsApp
 - `src/components/ui/` - Reusable UI components
 
 ### API Routes
+
 - `api/send-badge-email.js` - Badge email API
 - `api/send-notification-email.js` - Notification email API
 - `api/send-attendee-email.js` - Attendee email (existing)
@@ -77,8 +84,15 @@ npm run dev
 ### Add a New User Role
 
 1. Update `src/lib/auth.ts`:
+
 ```typescript
-export type UserRole = "exhibitor" | "visitor" | "delegate" | "fabricator" | "admin" | "newRole";
+export type UserRole =
+  | "exhibitor"
+  | "visitor"
+  | "delegate"
+  | "fabricator"
+  | "admin"
+  | "newRole";
 
 export const roleHierarchy: Record<UserRole, number> = {
   admin: 5,
@@ -95,6 +109,7 @@ export const roleHierarchy: Record<UserRole, number> = {
 ### Create a New Firestore Collection
 
 1. Add to `src/lib/collections.ts`:
+
 ```typescript
 export interface NewCollection {
   id: string;
@@ -105,7 +120,7 @@ export interface NewCollection {
 export const getNewCollectionByEmail = async (email: string) => {
   const q = query(
     collection(db, "newCollectionName"),
-    where("email", "==", email)
+    where("email", "==", email),
   );
   const snapshot = await getDocs(q);
   return snapshot.empty ? null : (snapshot.docs[0].data() as NewCollection);
@@ -128,7 +143,7 @@ await sendNotification({
   type: "success", // "success" | "error" | "warning" | "info"
   sendEmail: true,
   emailAddress: userEmail,
-  actionUrl: "/link/to/action"
+  actionUrl: "/link/to/action",
 });
 ```
 
@@ -181,14 +196,14 @@ const exhibitorFiles = await getDownloadsByCategory("Exhibitor");
 
 ```typescript
 // In browser console, run:
-import { setAuthUser } from '@/lib/auth';
+import { setAuthUser } from "@/lib/auth";
 
 setAuthUser({
   id: "test-visitor-1",
   email: "test@example.com",
   name: "Test User",
   role: "visitor",
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 ```
 
@@ -208,6 +223,7 @@ setAuthUser({
 ### Test Email Sending
 
 Check AWS SES console for:
+
 - Successful sends in "Send Statistics"
 - Bounces in "Suppression List"
 - Failed sends
@@ -231,8 +247,12 @@ console.log("Current role:", getCurrentRole());
 
 ```typescript
 // In browser console
-firebase.firestore().collection("exhibitors").limit(5).get()
-  .then(snapshot => console.log(snapshot.docs.map(d => d.data())));
+firebase
+  .firestore()
+  .collection("exhibitors")
+  .limit(5)
+  .get()
+  .then((snapshot) => console.log(snapshot.docs.map((d) => d.data())));
 ```
 
 ### Network Debugging
@@ -254,6 +274,7 @@ firebase.firestore().collection("exhibitors").limit(5).get()
 ## 📝 Code Style Guide
 
 ### Naming Conventions
+
 - **Components**: PascalCase (e.g., `VisitorRegister`)
 - **Files**: Match component name or descriptive (e.g., `visitor-register.tsx`)
 - **Functions**: camelCase (e.g., `generateQRCode`)
@@ -261,6 +282,7 @@ firebase.firestore().collection("exhibitors").limit(5).get()
 - **Types**: PascalCase (e.g., `Visitor`, `NotificationType`)
 
 ### Import Order
+
 ```typescript
 // 1. External libraries
 import { useState } from "react";
@@ -277,6 +299,7 @@ import Nav from "@/components/landing/Nav";
 ```
 
 ### Component Structure
+
 ```typescript
 // Imports
 import { ... } from "...";
@@ -288,17 +311,17 @@ interface Props { ... }
 export default function ComponentName() {
   // State
   const [state, setState] = useState();
-  
+
   // Hooks
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   // Effects
   useEffect(() => { ... }, []);
-  
+
   // Handlers
   const handleClick = () => { ... };
-  
+
   // Render
   return ( ... );
 }
@@ -309,6 +332,7 @@ export default function ComponentName() {
 ## 📦 Dependencies
 
 ### Key Libraries
+
 - **react**: UI library
 - **react-router-dom**: Routing
 - **@tanstack/react-query**: Data fetching
@@ -325,6 +349,7 @@ export default function ComponentName() {
 - **date-fns**: Date utilities
 
 ### Check Installed Packages
+
 ```bash
 npm list
 npm list qrcode.react   # Check specific package
@@ -335,6 +360,7 @@ npm list qrcode.react   # Check specific package
 ## 🚀 Deployment
 
 ### Build for Production
+
 ```bash
 npm run build
 # Output: dist/ folder
@@ -344,6 +370,7 @@ npm run preview
 ```
 
 ### Deploy to Vercel
+
 ```bash
 # Install Vercel CLI
 npm i -g vercel
@@ -357,6 +384,7 @@ vercel --prod
 ```
 
 ### Deploy to Netlify
+
 ```bash
 # Install Netlify CLI
 npm i -g netlify-cli
@@ -388,22 +416,26 @@ netlify deploy --prod
 ## 📊 Performance Tips
 
 1. **Lazy Load Components**
+
 ```typescript
 const VisitorRegister = lazy(() => import("./VisitorRegister"));
 ```
 
 2. **Optimize Images**
+
 ```typescript
 // Use WebP with fallback
 <img src="image.webp" alt="..." />
 ```
 
 3. **Minimize Firestore Queries**
+
 - Use indexes for common queries
 - Batch requests where possible
 - Limit query results with `.limit()`
 
 4. **Cache Static Data**
+
 ```typescript
 const cache = new Map();
 ```

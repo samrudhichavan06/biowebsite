@@ -19,7 +19,7 @@ export const About = () => (
           Hosted by Meera Trade Fair Media, BioEnergy India Expo 2026 is the country's most ambitious gathering on the energy transition — three days of exhibition, summit and dialogue at IICC Yashobhoomi, New Delhi.
         </p>
         <div className="mt-8 flex gap-3">
-          <a href="#register" className="rounded-full bg-primary px-5 py-3 text-sm text-primary-foreground">Become an exhibitor</a>
+          <a href="/exhibitor/register" className="rounded-full bg-primary px-5 py-3 text-sm text-primary-foreground">Become an exhibitor</a>
           <a href="#" className="rounded-full border border-foreground/15 px-5 py-3 text-sm">Download brochure</a>
         </div>
       </div>
