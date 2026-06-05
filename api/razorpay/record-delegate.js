@@ -128,7 +128,6 @@ export default async function handler(req, res) {
     const eventId = String(body.eventId || "bioenergy-global-2026").trim();
     const eventName = String(body.eventName || "Bioenergy Global 2026").trim();
     const packageId = String(body.packageId || "").trim();
-    const packageId = String(body.packageId || "").trim();
     const packageTitle = String(body.packageTitle || "").trim();
     const amount = Number(body.amount || body.amount_inr || 0);
     const receipt = String(

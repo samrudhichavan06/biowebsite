@@ -279,7 +279,13 @@ export default function DelegateRegister() {
                       };
 
                       await Promise.all([
-                        addDoc(fbCollection(db, "registrations_bioenergy_global_2026"), recordData),
+                        addDoc(fbCollection(db, "registrations_bioenergy_global_2026"), {
+                          ...recordData,
+                          packageId: selectedPackageData.id,
+                          packageTitle: selectedPackageData.title,
+                          amount: grandTotal,
+                          amount_inr: grandTotal,
+                        }),
                         addDoc(fbCollection(db, "delegates"), {
                           id: paymentId || response.razorpay_order_id || registrationCode,
                           firstName: delegate.fullName.trim().split(/\s+/)[0] || delegate.fullName.trim(),
@@ -288,6 +294,10 @@ export default function DelegateRegister() {
                           phone: mobileNumber.trim(),
                           company: companyName.trim(),
                           designation: delegate.designation.trim(),
+                          packageId: selectedPackageData.id,
+                          packageTitle: selectedPackageData.title,
+                          amount: grandTotal,
+                          amount_inr: grandTotal,
                           passType: "vip",
                           agendaDownloaded: false,
                           certificateGenerated: false,
@@ -314,6 +324,10 @@ export default function DelegateRegister() {
                           phone: mobileNumber.trim(),
                           company: companyName.trim(),
                           designation: delegate.designation.trim(),
+                          packageId: selectedPackageData.id,
+                          packageTitle: selectedPackageData.title,
+                          amount: grandTotal,
+                          amount_inr: grandTotal,
                           country: "",
                           attendee_type: "Delegate",
                           interests: "",
@@ -329,6 +343,10 @@ export default function DelegateRegister() {
                           phone: mobileNumber.trim(),
                           company: companyName.trim(),
                           designation: delegate.designation.trim(),
+                          packageId: selectedPackageData.id,
+                          packageTitle: selectedPackageData.title,
+                          amount: grandTotal,
+                          amount_inr: grandTotal,
                           passType: "vip",
                           agendaDownloaded: false,
                           certificateGenerated: false,
