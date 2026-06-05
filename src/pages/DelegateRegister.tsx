@@ -58,7 +58,7 @@ const PACKAGE_OPTIONS: Array<{
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RZP_KEY_ID || "YOUR_RAZORPAY_KEY_ID";
 const GST_RATE = 0.18;
-const TEST_MODE = true; // Set to true only for local testing with ₹1 test price
+const TEST_MODE = false; // Set to false for production pricing
 const TEST_PRICE_RUPEES = 1;
 
 function loadRazorpayScript() {
