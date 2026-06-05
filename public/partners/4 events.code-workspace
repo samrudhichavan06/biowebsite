@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "4 events",
+			"path": "../.."
+		},
+		{
+			"name": "logos_categorized",
+			"path": "../../../../Downloads/logos_categorized_named/logos_categorized"
+		}
+	],
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			"Copy-Item": true
+		}
+	}
+}

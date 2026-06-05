@@ -58,7 +58,7 @@ const PACKAGE_OPTIONS: Array<{
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RZP_KEY_ID || "YOUR_RAZORPAY_KEY_ID";
 const GST_RATE = 0.18;
-const TEST_MODE = false; // Set to true only for local testing with ₹1 test price
+const TEST_MODE = true; // Set to true only for local testing with ₹1 test price
 const TEST_PRICE_RUPEES = 1;
 
 function loadRazorpayScript() {
@@ -231,7 +231,121 @@ export default function DelegateRegister() {
                   console.error("Failed to save pass locally:", e);
                 }
 
-                // Background task: generate badge + persist locally and via API
+                // Persist the delegate registration through the server first, then fall back to Firestore if needed.
+                const recordRegistration = async () => {
+                  try {
+                    const recordResp = await fetch("/api/razorpay/record-delegate", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        fullName: delegate.fullName.trim(),
+                        email: emailAddress.trim(),
+                        phone: mobileNumber.trim(),
+                        company: companyName.trim(),
+                        designation: delegate.designation.trim(),
+                        attendeeType: "Delegate",
+                        eventId: "bioenergy-global-2026",
+                        eventName: "Bioenergy Global 2026",
+                        packageId: selectedPackageData.id,
+                        packageTitle: selectedPackageData.title,
+                        paymentId,
+                        orderId: response.razorpay_order_id,
+                        receipt: notes?.receipt || `rcpt_${Date.now()}`,
+                        registrationCode,
+                        country: "",
+                        interests: "",
+                      }),
+                    });
+                    const recordJson = await recordResp.json();
+
+                    if ((!recordResp.ok || recordJson?.fallback || recordJson?.stored === false) && db) {
+                      const timestamp = new Date().toISOString();
+                      const recordData = {
+                        created_at: timestamp,
+                        event_name: "Bioenergy Global 2026",
+                        full_name: delegate.fullName.trim(),
+                        email: emailAddress.trim(),
+                        phone: mobileNumber.trim(),
+                        company: companyName.trim(),
+                        designation: delegate.designation.trim(),
+                        country: "",
+                        attendee_type: "Delegate",
+                        interests: "",
+                        paymentId,
+                        orderId: response.razorpay_order_id,
+                        registrationCode,
+                      };
+
+                      await Promise.all([
+                        addDoc(fbCollection(db, "registrations_bioenergy_global_2026"), recordData),
+                        addDoc(fbCollection(db, "delegates"), {
+                          id: paymentId || response.razorpay_order_id || registrationCode,
+                          firstName: delegate.fullName.trim().split(/\s+/)[0] || delegate.fullName.trim(),
+                          lastName: delegate.fullName.trim().split(/\s+/).slice(1).join(" "),
+                          email: emailAddress.trim(),
+                          phone: mobileNumber.trim(),
+                          company: companyName.trim(),
+                          designation: delegate.designation.trim(),
+                          passType: "vip",
+                          agendaDownloaded: false,
+                          certificateGenerated: false,
+                          eventId: "bioenergy-global-2026",
+                          createdAt: timestamp,
+                          updatedAt: timestamp,
+                          paymentId,
+                          orderId: response.razorpay_order_id,
+                          attendeeType: "Delegate",
+                          fullName: delegate.fullName.trim(),
+                        }),
+                      ]);
+                    }
+                  } catch (e) {
+                    console.error("Failed to persist delegate registration:", e);
+                    if (db) {
+                      const timestamp = new Date().toISOString();
+                      await Promise.all([
+                        addDoc(fbCollection(db, "registrations_bioenergy_global_2026"), {
+                          created_at: timestamp,
+                          event_name: "Bioenergy Global 2026",
+                          full_name: delegate.fullName.trim(),
+                          email: emailAddress.trim(),
+                          phone: mobileNumber.trim(),
+                          company: companyName.trim(),
+                          designation: delegate.designation.trim(),
+                          country: "",
+                          attendee_type: "Delegate",
+                          interests: "",
+                          paymentId,
+                          orderId: response.razorpay_order_id,
+                          registrationCode,
+                        }),
+                        addDoc(fbCollection(db, "delegates"), {
+                          id: paymentId || response.razorpay_order_id || registrationCode,
+                          firstName: delegate.fullName.trim().split(/\s+/)[0] || delegate.fullName.trim(),
+                          lastName: delegate.fullName.trim().split(/\s+/).slice(1).join(" "),
+                          email: emailAddress.trim(),
+                          phone: mobileNumber.trim(),
+                          company: companyName.trim(),
+                          designation: delegate.designation.trim(),
+                          passType: "vip",
+                          agendaDownloaded: false,
+                          certificateGenerated: false,
+                          eventId: "bioenergy-global-2026",
+                          createdAt: timestamp,
+                          updatedAt: timestamp,
+                          paymentId,
+                          orderId: response.razorpay_order_id,
+                          attendeeType: "Delegate",
+                          fullName: delegate.fullName.trim(),
+                        }),
+                      ]);
+                    }
+                  }
+                };
+
+                const recordPromise = recordRegistration();
+
+                // Background task: generate badge + persist locally
                 (async () => {
                   try {
                     const badgeRes = await generateAndSendBadge({
@@ -255,80 +369,12 @@ export default function DelegateRegister() {
                     } catch (e) {
                       console.error("Failed to save badge locally:", e);
                     }
-
-                    // Persist the delegate registration through the server first, then fall back to Firestore if needed.
-                    try {
-                      const recordResp = await fetch("/api/razorpay/record-delegate", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          fullName: delegate.fullName.trim(),
-                          email: emailAddress.trim(),
-                          phone: mobileNumber.trim(),
-                          company: companyName.trim(),
-                          designation: delegate.designation.trim(),
-                          attendeeType: "Delegate",
-                          eventId: "bioenergy-global-2026",
-                          eventName: "Bioenergy Global 2026",
-                          packageId: selectedPackageData.id,
-                          packageTitle: selectedPackageData.title,
-                          paymentId,
-                          orderId: response.razorpay_order_id,
-                          receipt: notes?.receipt || `rcpt_${Date.now()}`,
-                          registrationCode,
-                          country: "",
-                          interests: "",
-                        }),
-                      });
-
-                      if (!recordResp.ok && db) {
-                        const timestamp = new Date().toISOString();
-                        const recordData = {
-                          created_at: timestamp,
-                          event_name: "Bioenergy Global 2026",
-                          full_name: delegate.fullName.trim(),
-                          email: emailAddress.trim(),
-                          phone: mobileNumber.trim(),
-                          company: companyName.trim(),
-                          designation: delegate.designation.trim(),
-                          country: "",
-                          attendee_type: "Delegate",
-                          interests: "",
-                          paymentId,
-                          orderId: response.razorpay_order_id,
-                          registrationCode,
-                        };
-
-                        await Promise.all([
-                          addDoc(fbCollection(db, "registrations_bioenergy_global_2026"), recordData),
-                          addDoc(fbCollection(db, "delegates"), {
-                            id: paymentId || response.razorpay_order_id || registrationCode,
-                            firstName: delegate.fullName.trim().split(/\s+/)[0] || delegate.fullName.trim(),
-                            lastName: delegate.fullName.trim().split(/\s+/).slice(1).join(" "),
-                            email: emailAddress.trim(),
-                            phone: mobileNumber.trim(),
-                            company: companyName.trim(),
-                            designation: delegate.designation.trim(),
-                            passType: "vip",
-                            agendaDownloaded: false,
-                            certificateGenerated: false,
-                            eventId: "bioenergy-global-2026",
-                            createdAt: timestamp,
-                            updatedAt: timestamp,
-                            paymentId,
-                            orderId: response.razorpay_order_id,
-                            attendeeType: "Delegate",
-                            fullName: delegate.fullName.trim(),
-                          }),
-                        ]);
-                      }
-                    } catch (e) {
-                      console.error("Failed to persist delegate registration:", e);
-                    }
                   } catch (err) {
                     console.error("Background badge generation failed:", err);
                   }
                 })();
+
+                await recordPromise;
 
                 // Redirect user to the pass page right away (route defined at /registration/success)
                 window.location.href = "/registration/success";
