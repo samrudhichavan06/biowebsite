@@ -248,6 +248,8 @@ export default function DelegateRegister() {
                         eventName: "Bioenergy Global 2026",
                         packageId: selectedPackageData.id,
                         packageTitle: selectedPackageData.title,
+                        amount: grandTotal,
+                        amount_inr: grandTotal,
                         paymentId,
                         orderId: response.razorpay_order_id,
                         receipt: notes?.receipt || `rcpt_${Date.now()}`,

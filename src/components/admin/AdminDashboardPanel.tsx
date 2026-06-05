@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { TrendingUp, Users, Briefcase, Globe2, UserCheck, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, Briefcase, Globe2, UserCheck, BarChart3, IndianRupee } from "lucide-react";
 import { eventCatalog } from "@/lib/events";
 
 interface DashboardPanelProps {
@@ -22,6 +22,15 @@ export const AdminDashboardPanel = ({
   const totalRegistrations = filteredRecords.length;
   const uniqueCompanies = new Set(filteredRecords.map((r) => r.company)).size;
   const uniqueCountries = new Set(filteredRecords.map((r) => r.country)).size;
+  const totalRevenue = filteredRecords.reduce((sum, r) => {
+    const amount = Number(r.amount || r.amount_inr || 0);
+    return sum + (Number.isFinite(amount) ? amount : 0);
+  }, 0);
+  const formattedRevenue = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(totalRevenue);
   const todayCount = filteredRecords.filter((r) => {
     const today = new Date();
     const created = new Date(r.created_at);
@@ -81,11 +90,12 @@ export const AdminDashboardPanel = ({
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard icon={<Users className="h-5 w-5" />} label="Total Attendees" value={totalRegistrations} accent="lime" sub="Live registrations" />
         <KpiCard icon={<TrendingUp className="h-5 w-5" />} label="Today" value={todayCount} accent="emerald" sub="New today" />
         <KpiCard icon={<Briefcase className="h-5 w-5" />} label="Companies" value={uniqueCompanies} accent="teal" sub="Participating" />
         <KpiCard icon={<Globe2 className="h-5 w-5" />} label="Countries" value={uniqueCountries} accent="amber" sub="Global reach" />
+        <KpiCard icon={<IndianRupee className="h-5 w-5" />} label="Revenue" value={formattedRevenue} accent="emerald" sub="Total revenue" />
       </div>
 
       {/* Exhibitor Scan Total Card */}
@@ -142,12 +152,13 @@ export const AdminDashboardPanel = ({
                     <th className="px-5 py-3 font-semibold hidden sm:table-cell">Event</th>
                     <th className="px-5 py-3 font-semibold">Name</th>
                     <th className="px-5 py-3 font-semibold hidden md:table-cell">Email</th>
+                    <th className="px-5 py-3 font-semibold hidden lg:table-cell">Plan</th>
                     <th className="px-5 py-3 font-semibold">Type</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredRecords.length === 0 && (
-                    <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">No registrations found.</td></tr>
+                    <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400">No registrations found.</td></tr>
                   )}
                   {filteredRecords.slice(0, 8).map((r) => (
                     <tr key={r.id} className="hover:bg-slate-50/60 transition">
@@ -155,6 +166,7 @@ export const AdminDashboardPanel = ({
                       <td className="px-5 py-3.5 text-xs text-slate-600 hidden sm:table-cell font-semibold">{r.event_name?.split(" ")[0]}</td>
                       <td className="px-5 py-3.5 text-slate-900 font-semibold">{r.full_name}</td>
                       <td className="px-5 py-3.5 text-xs text-slate-500 hidden md:table-cell">{r.email}</td>
+                      <td className="px-5 py-3.5 text-xs text-slate-500 hidden lg:table-cell">{r.packageTitle || r.package_title || "—"}</td>
                       <td className="px-5 py-3.5">
                         <span className="inline-block px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-full font-semibold border border-emerald-100/50">
                           {r.attendee_type}
@@ -223,7 +235,7 @@ export const AdminDashboardPanel = ({
   );
 };
 
-function KpiCard({ icon, label, value, accent, sub }: { icon: React.ReactNode; label: string; value: number; accent: string; sub: string }) {
+function KpiCard({ icon, label, value, accent, sub }: { icon: React.ReactNode; label: string; value: React.ReactNode; accent: string; sub: string }) {
   const accentMap: Record<string, string> = {
     lime: "bg-gradient-to-br from-white to-slate-50/50 border-slate-200/80 text-emerald-600 shadow-sm",
     emerald: "bg-gradient-to-br from-white to-slate-50/50 border-slate-200/80 text-emerald-600 shadow-sm",

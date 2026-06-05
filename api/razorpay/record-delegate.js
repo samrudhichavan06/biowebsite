@@ -128,7 +128,9 @@ export default async function handler(req, res) {
     const eventId = String(body.eventId || "bioenergy-global-2026").trim();
     const eventName = String(body.eventName || "Bioenergy Global 2026").trim();
     const packageId = String(body.packageId || "").trim();
+    const packageId = String(body.packageId || "").trim();
     const packageTitle = String(body.packageTitle || "").trim();
+    const amount = Number(body.amount || body.amount_inr || 0);
     const receipt = String(
       body.receipt || paymentId || orderId || `rcpt_${Date.now()}`,
     ).trim();
@@ -186,6 +188,9 @@ export default async function handler(req, res) {
             agendaDownloaded: false,
             certificateGenerated: false,
             eventId,
+            packageId,
+            packageTitle,
+            amount,
             createdAt: adminModule.firestore.FieldValue.serverTimestamp(),
             updatedAt: adminModule.firestore.FieldValue.serverTimestamp(),
             paymentId,
@@ -203,6 +208,7 @@ export default async function handler(req, res) {
           {
             id: String(delegateDocId),
             ...recordBase,
+            amount,
             created_at: receivedAt,
             event_name: eventName,
             full_name: fullName,

@@ -24,10 +24,17 @@ export const AdminAttendeesPanel = ({
   onExportCSV,
 }: AttendeesPanelProps) => {
   const normalizedUsers = useMemo(() => {
-    return users.map((u) => ({
-      ...u,
-      _collection: String(u.collection || u.role || u._collection || "").trim().toLowerCase(),
-    }));
+    return users.map((u) => {
+      let collectionName = String(u.collection || u.role || u.attendeeType || u._collection || "").trim().toLowerCase();
+      if (collectionName === "delegate") collectionName = "delegates";
+      if (collectionName === "exhibitor") collectionName = "exhibitors";
+      if (collectionName === "visitor") collectionName = "visitors";
+      if (collectionName === "fabricator") collectionName = "fabricators";
+      return {
+        ...u,
+        _collection: collectionName,
+      };
+    });
   }, [users]);
 
   const filteredByRole = useMemo(() => {
@@ -39,7 +46,7 @@ export const AdminAttendeesPanel = ({
     const q = searchQuery.trim().toLowerCase();
     if (!q) return filteredByRole;
     return filteredByRole.filter((u) => {
-      const fields = [u.companyName, u.company_name, u.contactName, u.contact_name, u.email, u.firstName, u.lastName];
+      const fields = [u.companyName, u.company_name, u.contactName, u.contact_name, u.email, u.firstName, u.lastName, u.packageTitle, u.package_title];
       return fields.some((v) => String(v || "").toLowerCase().includes(q));
     });
   }, [filteredByRole, searchQuery]);
@@ -56,14 +63,34 @@ export const AdminAttendeesPanel = ({
     return String(u.email || u.phone || "—").trim();
   };
 
+  const totalRevenue = useMemo(() => {
+    return filteredByRole.reduce((sum, u) => {
+      const amount = Number(u.amount || u.amount_inr || 0);
+      return sum + (Number.isFinite(amount) ? amount : 0);
+    }, 0);
+  }, [filteredByRole]);
+
+  const formattedRevenue = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(totalRevenue);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 text-slate-800">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
           <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Attendees</h2>
           <p className="text-sm text-slate-500 mt-0.5 font-medium">Manage exhibitors and delegates</p>
         </div>
-        <span className="text-xs text-slate-400 font-bold bg-slate-100 px-3 py-1 rounded-full">{filteredUsers.length} records</span>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+          Total revenue: <span className="text-slate-900">{formattedRevenue}</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span className="text-xs text-slate-400 font-bold bg-slate-100 px-3 py-1 rounded-full">{filteredUsers.length} records</span>
+        </div>
       </div>
 
       {/* Filters */}
@@ -143,6 +170,14 @@ export const AdminAttendeesPanel = ({
                         <div>
                           <div className="font-semibold text-slate-900">{displayName}</div>
                           <div className="text-[11px] text-slate-500 font-medium">{secondary}</div>
+                          {u._collection === "delegates" && (
+                            <div className="text-[11px] text-slate-400 mt-1">
+                              {String(u.packageTitle || u.package_title || "").trim()
+                                ? `Plan: ${u.packageTitle || u.package_title}`
+                                : "Plan: not set"}
+                              {u.amount || u.amount_inr ? ` • ₹${Number(u.amount || u.amount_inr).toLocaleString()}` : ""}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
