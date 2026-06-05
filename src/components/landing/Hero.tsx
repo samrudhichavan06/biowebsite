@@ -240,7 +240,7 @@ export const Hero = () => {
               <img
                 src={logoMeera}
                 alt="Meera organised by logo"
-                className="mx-auto mt-3 h-10 w-auto object-contain"
+                className="mx-auto mt-3 h-20 w-auto object-contain"
               />
             </div>
             <div className="flex-1 text-center">
@@ -248,7 +248,7 @@ export const Hero = () => {
               <img
                 src="/partners/WhatsApp_Image_2026-06-04_at_1.22.59_PM-removebg-preview.png"
                 alt="Supported by Ministry of Environment, Forest and Climate Change"
-                className="mx-auto mt-3 h-10 w-auto object-contain"
+                className="mx-auto mt-3 h-20 w-auto object-contain"
               />
             </div>
           </div>
@@ -510,7 +510,7 @@ export const Hero = () => {
                 <img
                   src={current.logo}
                   alt={current.name}
-                  className="h-12 w-auto shrink-0 object-contain md:h-14"
+                  className="h-18 w-auto shrink-0 object-contain md:h-24"
                 />
                 <div>
                   <div className="font-display text-2xl md:text-3xl">
