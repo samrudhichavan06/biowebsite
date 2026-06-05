@@ -8,6 +8,7 @@ import logoBio from "@/assets/logo-bioenergy-white.png";
 import logoRen from "@/assets/logo-reneweex.png";
 import logoWte from "@/assets/logo-wte.png";
 import logoNcbi from "@/assets/logo-ncbi-white.png";
+import logoMeera from "@/assets/logo-meera.png";
 import { Link } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { QRCodeSVG } from "qrcode.react";
@@ -227,6 +228,101 @@ export const Hero = () => {
               </span>
               Registrations open
             </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="container-x mt-6 md:hidden">
+        <div className="rounded-[1.6rem] border border-foreground/10 bg-background/95 p-3 shadow-card backdrop-blur-xl">
+          <div className="mb-4 flex items-center gap-3 overflow-hidden rounded-[1.5rem] border border-foreground/10 bg-slate-50 p-2 shadow-sm">
+            <div className="flex-1 text-center">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Organised by</div>
+              <img
+                src={logoMeera}
+                alt="Meera organised by logo"
+                className="mx-auto mt-3 h-10 w-auto object-contain"
+              />
+            </div>
+            <div className="flex-1 text-center">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
+              <img
+                src="/partners/WhatsApp_Image_2026-06-04_at_1.22.59_PM-removebg-preview.png"
+                alt="Supported by Ministry of Environment, Forest and Climate Change"
+                className="mx-auto mt-3 h-10 w-auto object-contain"
+              />
+            </div>
+          </div>
+
+          <div className="mb-3 flex items-center justify-between px-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60">Quick registration</p>
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Tap to open</span>
+          </div>
+
+          <div className="grid gap-3">
+            <a
+              href="#events"
+              className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary via-primary/90 to-accent px-4 py-4 text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.38),transparent_36%)]" />
+              <span className="glow-sweep" />
+              <span className="pointer-events-none absolute -right-6 top-2 h-16 w-16 rounded-full bg-white/20 blur-2xl" />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/16 ring-1 ring-white/20 shadow-[0_0_22px_rgba(255,255,255,0.18)]">
+                    <Users className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.22em] text-white/70">Visitor pass</span>
+                    <span className="block text-base">Register for Event</span>
+                  </span>
+                </span>
+                <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+            </a>
+
+            <a
+              href="/delegate/register"
+              className="group relative overflow-hidden rounded-2xl border border-amber-300/40 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta glow-cta-amber glow-delay-1"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.42),transparent_34%)]" />
+              <span className="glow-sweep glow-sweep-delay-1" />
+              <span className="pointer-events-none absolute -left-8 bottom-[-18px] h-20 w-20 rounded-full bg-white/18 blur-3xl" />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.22)]">
+                    <Crown className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Delegate pass</span>
+                    <span className="block text-base">Delegate Registration</span>
+                  </span>
+                </span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/25 shadow-[0_0_18px_rgba(255,255,255,0.18)]">
+                  <ArrowUpRight className="h-4.5 w-4.5" />
+                </span>
+              </span>
+            </a>
+
+            <a
+              href="/exhibitor/register"
+              className="group relative overflow-hidden rounded-2xl border border-emerald-300/30 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta glow-cta-emerald glow-delay-2"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_35%)]" />
+              <span className="glow-sweep glow-sweep-delay-2" />
+              <span className="pointer-events-none absolute right-4 top-4 h-2 w-2 rounded-full bg-white shadow-[0_0_16px_rgba(255,255,255,0.9)] animate-pulse" />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_24px_rgba(255,255,255,0.18)]">
+                    <Plus className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Exhibitor pass</span>
+                    <span className="block text-base">Exhibit Registration</span>
+                  </span>
+                </span>
+                <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+            </a>
           </div>
         </div>
       </div>
