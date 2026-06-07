@@ -234,20 +234,30 @@ export const Hero = () => {
 
       <div className="container-x mt-6 md:hidden">
         <div className="rounded-[1.6rem] border border-foreground/10 bg-background/95 p-3 shadow-card backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-3 overflow-hidden rounded-[1.5rem] border border-foreground/10 bg-slate-50 p-2 shadow-sm">
-            <div className="flex-1 text-center">
-              <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Organised by</div>
-              <img
-                src={logoMeera}
-                alt="Meera organised by logo"
-                className="mx-auto mt-3 h-20 w-auto object-contain"
-              />
+          <div className="mb-4 flex flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-foreground/10 bg-slate-50 p-2 shadow-sm">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Organised by</div>
+                <img
+                  src={logoMeera}
+                  alt="Meera organised by logo"
+                  className="mx-auto mt-3 h-20 w-auto object-contain"
+                />
+              </div>
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
+                <img
+                  src="/partners/WhatsApp_Image_2026-06-04_at_1.22.59_PM-removebg-preview.png"
+                  alt="Supported by Ministry of Environment, Forest and Climate Change"
+                  className="mx-auto mt-3 h-20 w-auto object-contain"
+                />
+              </div>
             </div>
-            <div className="flex-1 text-center">
+            <div className="text-center border-t border-foreground/10 pt-3">
               <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
               <img
-                src="/partners/WhatsApp_Image_2026-06-04_at_1.22.59_PM-removebg-preview.png"
-                alt="Supported by Ministry of Environment, Forest and Climate Change"
+                src="/partners/LIFE.png"
+                alt="LIFE supporter logo"
                 className="mx-auto mt-3 h-20 w-auto object-contain"
               />
             </div>
@@ -535,6 +545,35 @@ export const Hero = () => {
         {/* RIGHT — Vertical event stack */}
         <aside className="lg:col-span-5">
           <div className="hidden rounded-[1.6rem] border border-white/60 bg-white/60 p-3 shadow-[0_18px_60px_rgba(22,38,27,0.14)] backdrop-blur-xl md:block mb-6">
+            <div className="mb-4 flex flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-foreground/10 bg-slate-50 p-2 shadow-sm">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="text-center">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Organised by</div>
+                  <img
+                    src={logoMeera}
+                    alt="Meera organised by logo"
+                    className="mx-auto mt-3 h-20 w-auto object-contain"
+                  />
+                </div>
+                <div className="text-center">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
+                  <img
+                    src="/partners/WhatsApp_Image_2026-06-04_at_1.22.59_PM-removebg-preview.png"
+                    alt="Supported by Ministry of Environment, Forest and Climate Change"
+                    className="mx-auto mt-3 h-20 w-auto object-contain"
+                  />
+                </div>
+              </div>
+              <div className="text-center border-t border-foreground/10 pt-3">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
+                <img
+                  src="/partners/LIFE.png"
+                  alt="LIFE supporter logo"
+                  className="mx-auto mt-3 h-20 w-auto object-contain"
+                />
+              </div>
+            </div>
+
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60">Quick registration</p>
               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
