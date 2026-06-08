@@ -25,6 +25,7 @@ import {
   Users,
   Crown,
   Download,
+  MessageSquare,
 } from "lucide-react";
 
 type SavedPass = {
@@ -328,6 +329,26 @@ export const Hero = () => {
                   <span className="text-left leading-tight">
                     <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Exhibitor pass</span>
                     <span className="block text-base">Exhibit Registration</span>
+                  </span>
+                </span>
+                <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+            </a>
+            <a
+              href="https://wa.me/919142659818?text=Hello%20Bioenergy%20Expo%202026%20Exhibitor%20Inquiry"
+              target="_blank"
+              rel="noreferrer"
+              className="group relative overflow-hidden rounded-2xl border border-emerald-300/30 bg-gradient-to-r from-[#25D366] via-[#1ebd5b] to-[#128c7e] px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_34%)]" />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_24px_rgba(255,255,255,0.18)]">
+                    <MessageSquare className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Stall booking inquiry</span>
+                    <span className="block text-base">Chat on WhatsApp</span>
                   </span>
                 </span>
                 <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -641,6 +662,26 @@ export const Hero = () => {
                     <span className="text-left leading-tight">
                       <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Exhibitor pass</span>
                       <span className="block text-base">Exhibit Registration</span>
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </span>
+              </a>
+              <a
+                href="https://wa.me/919142659818?text=Hello%20Bioenergy%20Expo%202026%20Exhibitor%20Inquiry"
+                target="_blank"
+                rel="noreferrer"
+                className="group relative overflow-hidden rounded-2xl border border-emerald-300/30 bg-gradient-to-r from-[#25D366] via-[#1ebd5b] to-[#128c7e] px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+              >
+                <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_34%)]" />
+                <span className="relative flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-2.5">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_24px_rgba(255,255,255,0.18)]">
+                      <MessageSquare className="h-4.5 w-4.5" />
+                    </span>
+                    <span className="text-left leading-tight">
+                      <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Stall booking inquiry</span>
+                      <span className="block text-base">Chat on WhatsApp</span>
                     </span>
                   </span>
                   <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
