@@ -6,9 +6,10 @@ interface AnalyticsPanelProps {
   records: any[];
   filteredRecords: any[];
   dailyTrend: { label: string; count: number }[];
+  onExportVisitorData: (eventName: string) => void;
 }
 
-export const AdminAnalyticsPanel = ({ records, filteredRecords, dailyTrend }: AnalyticsPanelProps) => {
+export const AdminAnalyticsPanel = ({ records, filteredRecords, dailyTrend, onExportVisitorData }: AnalyticsPanelProps) => {
   const maxTrend = Math.max(...dailyTrend.map((d) => d.count), 1);
 
   const attendeeTypes = useMemo(() => {
@@ -107,8 +108,19 @@ export const AdminAnalyticsPanel = ({ records, filteredRecords, dailyTrend }: An
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {eventBreakdown.map((ev) => (
             <div key={ev.name} className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <h4 className="text-xs font-bold text-slate-700 truncate">{ev.name}</h4>
-              <p className="mt-2 text-2xl font-black text-slate-900">{ev.total}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700 truncate">{ev.name}</h4>
+                  <p className="mt-2 text-2xl font-black text-slate-900">{ev.total}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onExportVisitorData(ev.name)}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition"
+                >
+                  Export Visitors
+                </button>
+              </div>
               <div className="mt-3.5 space-y-1.5 border-t border-slate-200/60 pt-3">
                 {Object.entries(ev.types).map(([type, count]) => (
                   <div key={type} className="flex items-center justify-between text-[11px]">

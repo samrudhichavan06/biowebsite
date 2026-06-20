@@ -244,6 +244,42 @@ const AdminDashboard = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportVisitorRegistrationsForEvent = (eventName: string) => {
+    const filteredVisitors = records.filter((r) => {
+      const attendeeType = String(r.attendee_type || "").toLowerCase();
+      const isVisitor = attendeeType === "visitor";
+      return isVisitor && (eventName === "all" ? true : r.event_name === eventName);
+    });
+
+    if (filteredVisitors.length === 0) {
+      alert(`No visitor registrations found for ${eventName === "all" ? "all events" : eventName}.`);
+      return;
+    }
+
+    const rows = filteredVisitors.map((r) => ({
+      created_at: r.created_at,
+      event_name: r.event_name,
+      full_name: r.full_name || `${r.firstName || ""} ${r.lastName || ""}`.trim(),
+      email: r.email,
+      phone: r.phone,
+      company: r.company,
+      designation: r.designation,
+      country: r.country,
+      attendee_type: r.attendee_type,
+    }));
+
+    const header = Object.keys(rows[0]).join(",") + "\n";
+    const csv = header + rows.map((row) => Object.values(row).map((v) => `"${(v || "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeName = eventName === "all" ? "all_events_visitors" : eventName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+    a.download = `${safeName}_visitors.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Computed data
   const filteredRecords = useMemo(() => {
     if (selectedEvent === "all") return records;
@@ -330,6 +366,7 @@ const AdminDashboard = () => {
                     records={records}
                     filteredRecords={filteredRecords}
                     dailyTrend={dailyTrend}
+                    onExportVisitorData={exportVisitorRegistrationsForEvent}
                   />
                 )}
 
