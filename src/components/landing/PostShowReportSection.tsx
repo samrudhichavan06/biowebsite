@@ -30,7 +30,7 @@ const partnerCategories = [
 const exhibitorsBoard = "image24.png";
 
 const galleryImages = [
-  "image35.png",
+  "image35.jpg",
   "image36.png",
   "image38.jpg",
   "image39.jpg",
