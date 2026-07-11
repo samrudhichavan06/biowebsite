@@ -358,19 +358,7 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* Mobile video (above hero on small screens) */}
-      <div className="container-x block md:hidden mt-6">
-        <video
-          data-src="/videos/Conference-Montage-Demo.mp4"
-          poster={heroImg}
-          className="w-full rounded-xl shadow-card object-cover"
-          preload="none"
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-      </div>
+     
 
       {/* Main hero grid */}
       <div className="container-x grid gap-10 pt-12 pb-10 lg:grid-cols-12 lg:gap-8 lg:pt-16">
@@ -821,21 +809,6 @@ export const Hero = () => {
             </div>
           </div>
         </aside>
-      </div>
-
-      {/* Desktop video (under hero on md+ screens) */}
-      <div className="container-x hidden md:block mt-8">
-        <video
-          data-src="/videos/Conference-Montage-Demo.mp4"
-          poster={heroImg}
-          className="w-full rounded-xl shadow-card object-cover"
-          preload="none"
-          autoPlay
-          muted
-          loop
-          playsInline
-          controls
-        />
       </div>
 
       {/* Stat strip */}
