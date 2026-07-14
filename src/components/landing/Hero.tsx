@@ -270,6 +270,27 @@ export const Hero = () => {
           </div>
 
           <div className="grid gap-3">
+            <Link
+              to="/speakers"
+              className="group relative overflow-hidden rounded-2xl border border-violet-300/40 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_36%)]" />
+              <span className="glow-sweep" />
+              <span className="pointer-events-none absolute -right-6 top-2 h-16 w-16 rounded-full bg-white/20 blur-2xl" />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_22px_rgba(255,255,255,0.18)]">
+                    <Sparkles className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.22em] text-white/70">Featured</span>
+                    <span className="block text-base">View Speakers</span>
+                  </span>
+                </span>
+                <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+            </Link>
+
             <a
               href="#events"
               className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary via-primary/90 to-accent px-4 py-4 text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
@@ -466,6 +487,12 @@ export const Hero = () => {
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </a>
+            <Link
+              to="/speakers"
+              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-background/60 px-5 py-3 text-sm font-medium backdrop-blur transition hover:bg-foreground/5"
+            >
+              <Users className="h-4 w-4" /> View speakers
+            </Link>
             <a
               href="/exhibitor/register"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-background/60 px-5 py-3 text-sm font-medium backdrop-blur transition hover:bg-foreground/5"
@@ -591,6 +618,27 @@ export const Hero = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
+              <Link
+                to="/speakers"
+                className="group relative overflow-hidden rounded-2xl border border-violet-300/40 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+              >
+                <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_36%)]" />
+                <span className="glow-sweep" />
+                <span className="pointer-events-none absolute -right-6 top-2 h-16 w-16 rounded-full bg-white/20 blur-2xl" />
+                <span className="relative flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-2.5">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_22px_rgba(255,255,255,0.18)]">
+                      <Sparkles className="h-4.5 w-4.5" />
+                    </span>
+                    <span className="text-left leading-tight">
+                      <span className="block text-[10px] uppercase tracking-[0.22em] text-white/70">Featured</span>
+                      <span className="block text-base">View Speakers</span>
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </span>
+              </Link>
+
               <a
                 href="#events"
                 className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary via-primary/90 to-accent px-4 py-4 text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"

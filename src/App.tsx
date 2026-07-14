@@ -21,6 +21,7 @@ import RegistrationSuccess from "./pages/RegistrationSuccess";
 import DownloadCenter from "./pages/DownloadCenter";
 import NotFound from "./pages/NotFound.tsx";
 import PostShowReport from "./pages/PostShowReport";
+import Speakers from "./pages/Speakers";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
           <Route path="/registration/success" element={<RegistrationSuccess />} />
           <Route path="/downloads" element={<DownloadCenter />} />
           <Route path="/postshow-report" element={<PostShowReport />} />
+          <Route path="/speakers" element={<Speakers />} />
           
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />

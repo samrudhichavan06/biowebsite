@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 const links = [
   { label: "Events", href: "#events" },
   { label: "About", href: "#about" },
+  { label: "Speakers", href: "/speakers" },
   { label: "Venue", href: "#venue" },
   { label: "Partners", href: "#partners" },
 ];
@@ -25,11 +26,17 @@ export const Nav = () => (
         </div>
       </div>
       <nav className="hidden items-center gap-8 md:flex">
-        {links.map((l) => (
-          <a key={l.href} href={l.href} className="text-sm text-foreground/70 transition-colors hover:text-foreground">
-            {l.label}
-          </a>
-        ))}
+        {links.map((l) => 
+          l.href.startsWith("/") ? (
+            <Link key={l.href} to={l.href} className="text-sm text-foreground/70 transition-colors hover:text-foreground">
+              {l.label}
+            </Link>
+          ) : (
+            <a key={l.href} href={l.href} className="text-sm text-foreground/70 transition-colors hover:text-foreground">
+              {l.label}
+            </a>
+          )
+        )}
       </nav>
       <div className="flex items-center gap-2">
         <Link to="/exhibitor/register" className="hidden rounded-full border border-foreground/15 px-4 py-2 text-sm font-medium hover:bg-foreground/5 sm:inline-block">
