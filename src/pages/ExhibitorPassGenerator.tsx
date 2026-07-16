@@ -18,19 +18,24 @@ import meeraLogo from "@/assets/logo-meera-white.png";
 import bioenergyLogo from "@/assets/logo-bioenergy-white.png";
 
 type MemberInput = {
+  id: string;
   fullName: string;
   designation: string;
 };
 
-type GeneratedPass = MemberInput & {
+type GeneratedPass = {
+  memberId: string;
+  fullName: string;
+  designation: string;
   passNumber: string;
   qrPayload: string;
 };
 
-const emptyMember: MemberInput = {
+const createMember = (): MemberInput => ({
+  id: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10),
   fullName: "",
   designation: "",
-};
+});
 
 const ExhibitorPassGenerator = () => {
   const navigate = useNavigate();
@@ -40,7 +45,7 @@ const ExhibitorPassGenerator = () => {
   const [companyName, setCompanyName] = useState("");
   const [notes, setNotes] = useState("");
   const [eventId, setEventId] = useState(eventCatalog[0]?.id || "");
-  const [members, setMembers] = useState<MemberInput[]>([{ ...emptyMember }]);
+  const [members, setMembers] = useState<MemberInput[]>([createMember()]);
   const [generatedPasses, setGeneratedPasses] = useState<GeneratedPass[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const passListRef = useRef<HTMLDivElement | null>(null);
@@ -66,16 +71,17 @@ const ExhibitorPassGenerator = () => {
   };
 
   const handleAddMember = () => {
-    setMembers((current) => [...current, { ...emptyMember }]);
+    setMembers((current) => [...current, createMember()]);
   };
 
-  const handleRemoveMember = (index: number) => {
-    setMembers((current) => current.filter((_, idx) => idx !== index));
+  const handleRemoveMember = (memberId: string) => {
+    setMembers((current) => current.filter((member) => member.id !== memberId));
+    setGeneratedPasses((current) => current.filter((pass) => pass.memberId !== memberId));
   };
 
-  const handleMemberChange = (index: number, field: keyof MemberInput, value: string) => {
+  const handleMemberChange = (memberId: string, field: keyof MemberInput, value: string) => {
     setMembers((current) =>
-      current.map((member, idx) => (idx === index ? { ...member, [field]: value } : member)),
+      current.map((member) => (member.id === memberId ? { ...member, [field]: value } : member)),
     );
   };
 
@@ -105,7 +111,9 @@ const ExhibitorPassGenerator = () => {
       });
 
       return {
-        ...member,
+        memberId: member.id,
+        fullName: member.fullName,
+        designation: member.designation,
         passNumber,
         qrPayload,
       };
@@ -220,6 +228,15 @@ const ExhibitorPassGenerator = () => {
             <Button variant="secondary" onClick={() => setGeneratedPasses([])} disabled={generatedPasses.length === 0}>
               Clear passes
             </Button>
+            <Button variant="secondary" onClick={() => {
+              setCompanyName("");
+              setNotes("");
+              setEventId(eventCatalog[0]?.id || "");
+              setMembers([createMember()]);
+              setGeneratedPasses([]);
+            }}>
+              Refresh
+            </Button>
           </div>
         </div>
 
@@ -263,7 +280,7 @@ const ExhibitorPassGenerator = () => {
 
                 <div className="mt-4 space-y-4">
                   {members.map((member, index) => (
-                    <div key={index} className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+                    <div key={member.id} className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-semibold">Member {index + 1}</p>
                         {members.length > 1 ? (
@@ -271,7 +288,7 @@ const ExhibitorPassGenerator = () => {
                             type="button"
                             variant="secondary"
                             size="sm"
-                            onClick={() => handleRemoveMember(index)}
+                            onClick={() => handleRemoveMember(member.id)}
                           >
                             Remove
                           </Button>
@@ -280,21 +297,21 @@ const ExhibitorPassGenerator = () => {
 
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor={`member-name-${index}`}>Member name</Label>
+                          <Label htmlFor={`member-name-${member.id}`}>Member name</Label>
                           <Input
-                            id={`member-name-${index}`}
+                            id={`member-name-${member.id}`}
                             value={member.fullName}
-                            onChange={(evt) => handleMemberChange(index, "fullName", evt.target.value)}
+                            onChange={(evt) => handleMemberChange(member.id, "fullName", evt.target.value)}
                             placeholder="Full name"
                             required={index === 0}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor={`member-designation-${index}`}>Designation</Label>
+                          <Label htmlFor={`member-designation-${member.id}`}>Designation</Label>
                           <Input
-                            id={`member-designation-${index}`}
+                            id={`member-designation-${member.id}`}
                             value={member.designation}
-                            onChange={(evt) => handleMemberChange(index, "designation", evt.target.value)}
+                            onChange={(evt) => handleMemberChange(member.id, "designation", evt.target.value)}
                             placeholder="Designation"
                           />
                         </div>
