@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ExhibitorRegister from "./pages/ExhibitorRegister";
 import ExhibitorLogin from "./pages/ExhibitorLogin";
 import ExhibitorPanel from "./pages/ExhibitorPanel";
+import ExhibitorPassGenerator from "./pages/ExhibitorPassGenerator";
 import DelegateRegister from "./pages/DelegateRegister";
 import DelegateSuccess from "./pages/DelegateSuccess";
 // Visitor and Fabricator registration pages removed
@@ -40,6 +41,7 @@ const App = () => (
           {/* Exhibitor Zone */}
           <Route path="/exhibitor/register" element={<ExhibitorRegister />} />
           <Route path="/exhibitor/login" element={<ExhibitorLogin />} />
+          <Route path="/exhibitor/pass-generator" element={<ExhibitorPassGenerator />} />
           <Route path="/exhibitor/panel" element={<ExhibitorPanel />} />
           
           {/* Delegate/Conference Zone */}

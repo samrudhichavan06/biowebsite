@@ -29,3 +29,17 @@ export function setAdminAuthenticated() {
 export function clearAdminAuthenticated() {
   sessionStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
 }
+
+const PASS_GENERATOR_AUTH_STORAGE_KEY = "bioenergy_exhibitor_pass_generator_authenticated";
+
+export function isExhibitorPassGeneratorAuthenticated() {
+  return sessionStorage.getItem(PASS_GENERATOR_AUTH_STORAGE_KEY) === "true";
+}
+
+export function setExhibitorPassGeneratorAuthenticated() {
+  sessionStorage.setItem(PASS_GENERATOR_AUTH_STORAGE_KEY, "true");
+}
+
+export function clearExhibitorPassGeneratorAuthenticated() {
+  sessionStorage.removeItem(PASS_GENERATOR_AUTH_STORAGE_KEY);
+}

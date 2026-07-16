@@ -51,6 +51,11 @@ export const Footer = () => (
                 </Link>
               </li>
               <li>
+                <Link to="/exhibitor/pass-generator" className="underline-offset-4 hover:underline">
+                  Exhibitor Pass Generator
+                </Link>
+              </li>
+              <li>
                 <Link to="/admin/login" className="underline-offset-4 hover:underline">
                   Admin Panel
                 </Link>
