@@ -375,6 +375,24 @@ export const Hero = () => {
                 <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
             </a>
+            <a
+              href="/downloads"
+              className="group relative overflow-hidden rounded-2xl border border-blue-300/30 bg-gradient-to-r from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_34%)]" />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_24px_rgba(255,255,255,0.18)]">
+                    <Download className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Event Resources</span>
+                    <span className="block text-base">Download Center</span>
+                  </span>
+                </span>
+                <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+            </a>
           </div>
         </div>
       </div>
@@ -718,6 +736,24 @@ export const Hero = () => {
                     <span className="text-left leading-tight">
                       <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Stall booking inquiry</span>
                       <span className="block text-base">Chat on WhatsApp</span>
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </span>
+              </a>
+              <a
+                href="/downloads"
+                className="group relative overflow-hidden rounded-2xl border border-blue-300/30 bg-gradient-to-r from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
+              >
+                <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_34%)]" />
+                <span className="relative flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-2.5">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-white/18 ring-1 ring-white/20 shadow-[0_0_24px_rgba(255,255,255,0.18)]">
+                      <Download className="h-4.5 w-4.5" />
+                    </span>
+                    <span className="text-left leading-tight">
+                      <span className="block text-[10px] uppercase tracking-[0.22em] text-white/75">Event Resources</span>
+                      <span className="block text-base">Download Center</span>
                     </span>
                   </span>
                   <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

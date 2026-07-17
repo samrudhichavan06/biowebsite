@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, File, FileText, Book, Layout, Zap } from "lucide-react";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
@@ -19,10 +18,39 @@ interface DownloadFile {
   description?: string;
 }
 
+const STATIC_DOWNLOADS: DownloadFile[] = [
+  {
+    id: "static-bioenergy-agenda",
+    title: "Bioenergy Global Agenda",
+    type: "agenda",
+    fileUrl: "https://drive.google.com/uc?export=download&id=18cO9r_ixoM8pQvHpSTN_62kEMlyeWq-l",
+    fileSize: 0,
+    category: "Visitor",
+    description: "Complete agenda for the Bioenergy Global conference",
+  },
+  {
+    id: "static-bioenergy-speakers",
+    title: "Bioenergy Global Conference Speakers",
+    type: "manual",
+    fileUrl: "https://drive.google.com/uc?export=download&id=1bOXMW9yESmZNnnqHCAcT-UYy4mO4kATY",
+    fileSize: 0,
+    category: "Visitor",
+    description: "List of conference speakers at Bioenergy Global",
+  },
+  {
+    id: "static-bioenergy-brochure",
+    title: "Bioenergy Global Brochure",
+    type: "brochure",
+    fileUrl: "https://drive.google.com/uc?export=download&id=1CJVti2Wlpa6Bm0SF4uRGzsDJJGHeaW1x",
+    fileSize: 0,
+    category: "Visitor",
+    description: "Official brochure for Bioenergy Global event",
+  },
+];
+
 export default function DownloadCenter() {
   const [downloads, setDownloads] = useState<DownloadFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     loadDownloads();
@@ -35,25 +63,17 @@ export default function DownloadCenter() {
       setLoading(true);
       const q = query(collection(db, COLLECTIONS.DOWNLOADS));
       const snapshot = await getDocs(q);
-      setDownloads(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DownloadFile[]);
+      const firestoreDownloads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DownloadFile[];
+      setDownloads([...STATIC_DOWNLOADS, ...firestoreDownloads]);
     } catch (error) {
       console.error("Error loading downloads:", error);
+      setDownloads(STATIC_DOWNLOADS);
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = [
-    { label: "All Resources", value: "all" },
-    { label: "Exhibitor Zone", value: "Exhibitor" },
-    { label: "Visitor Zone", value: "Visitor" },
-    { label: "Delegate Zone", value: "Delegate" },
-    { label: "Fabricator Zone", value: "Fabricator" },
-  ];
-
-  const filteredDownloads = selectedCategory === "all"
-    ? downloads
-    : downloads.filter(d => d.category === selectedCategory);
+  const filteredDownloads = downloads;
 
   const getTypeIcon = (type: string) => {
     const icons: Record<string, JSX.Element> = {
@@ -112,17 +132,6 @@ export default function DownloadCenter() {
             Access all event resources, guidelines, brochures, and documents in one place
           </p>
         </div>
-
-        {/* Category Tabs */}
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-10">
-          <TabsList className="grid grid-cols-2 lg:grid-cols-5 w-full bg-card border border-border shadow-soft">
-            {categories.map(cat => (
-              <TabsTrigger key={cat.value} value={cat.value} className="text-xs lg:text-sm">
-                {cat.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
 
         {/* Downloads Grid */}
         {loading ? (
