@@ -257,7 +257,7 @@ export const Hero = () => {
             <div className="text-center border-t border-foreground/10 pt-3">
               <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
               <img
-                src="/partners/LIFE.png"
+                src="/partners/LIFE.webp"
                 alt="LIFE supporter logo"
                 className="mx-auto mt-3 h-20 w-auto object-contain"
               />
@@ -603,7 +603,7 @@ export const Hero = () => {
               <div className="text-center border-t border-foreground/10 pt-3">
                 <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/60">Supported by</div>
                 <img
-                  src="/partners/LIFE.png"
+                  src="/partners/LIFE.webp"
                   alt="LIFE supporter logo"
                   className="mx-auto mt-3 h-20 w-auto object-contain"
                 />
