@@ -305,7 +305,7 @@ export const Hero = () => {
                   </span>
                   <span className="text-left leading-tight">
                     <span className="block text-[10px] uppercase tracking-[0.22em] text-white/70">Visitor pass</span>
-                    <span className="block text-base">Register for Event</span>
+                    <span className="block text-base">Register for Event <span className="free-badge">Free</span></span>
                   </span>
                 </span>
                 <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -671,7 +671,7 @@ export const Hero = () => {
                     </span>
                     <span className="text-left leading-tight">
                       <span className="block text-[10px] uppercase tracking-[0.22em] text-white/70">Visitor pass</span>
-                      <span className="block text-base">Register for Event</span>
+                    <span className="block text-base">Register for Event <span className="free-badge">Free</span></span>
                     </span>
                   </span>
                   <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
