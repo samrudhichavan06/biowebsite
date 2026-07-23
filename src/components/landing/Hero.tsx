@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import heroImg from "@/assets/hero-bioenergy.jpg";
 import bio from "@/assets/event-bioenergy.jpg";
 import ren from "@/assets/event-reneweex.jpg";
@@ -10,6 +10,7 @@ import logoWte from "@/assets/logo-wte.png";
 import logoNcbi from "@/assets/logo-ncbi-white.png";
 import logoMeera from "@/assets/logo-meera.png";
 import { Link } from "react-router-dom";
+import { speakers } from "@/data/speakers";
 import html2canvas from "html2canvas";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -114,6 +115,125 @@ const tickerItems = [
   "Net-Zero Summit — invitation only",
   "Live demo zones & startup arena",
 ];
+
+const SpeakersSlider = () => {
+  const [current, setCurrent] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const verifiedSpeakers = speakers.filter((s) => s.verified);
+  const totalSlides = Math.ceil(verifiedSpeakers.length / 2);
+
+  const goToSlide = useCallback((index: number) => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrent(index);
+    setTimeout(() => setIsAnimating(false), 500);
+  }, [isAnimating]);
+
+  const nextSlide = useCallback(() => {
+    goToSlide((current + 1) % totalSlides);
+  }, [current, totalSlides, goToSlide]);
+
+  const prevSlide = useCallback(() => {
+    goToSlide((current - 1 + totalSlides) % totalSlides);
+  }, [current, totalSlides, goToSlide]);
+
+  useEffect(() => {
+    const timer = setInterval(nextSlide, 3000);
+    return () => clearInterval(timer);
+  }, [nextSlide]);
+
+  const getVisibleSpeakers = () => {
+    const start = current * 2;
+    return verifiedSpeakers.slice(start, start + 2);
+  };
+
+  return (
+    <div id="speakers" className="container-x mt-16 mb-10">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
+        <div className="max-w-3xl">
+          <span className="chip">Meet the Experts</span>
+          <h2 className="mt-4 font-display text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight">
+            Featured <em className="text-accent not-italic">Speakers</em>
+          </h2>
+        </div>
+        <p className="max-w-md text-foreground/60 text-sm md:text-base leading-relaxed lg:text-right">
+          Industry leaders and visionaries shaping the future of bioenergy
+        </p>
+      </div>
+
+      <div className="relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {getVisibleSpeakers().map((speaker, idx) => (
+            <div
+              key={speaker.id}
+              className="group relative overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 hover:shadow-[0_20px_50px_rgb(0,0,0,0.12)] hover:-translate-y-1 animate-fade-in"
+              style={{ animationDelay: `${idx * 120}ms` }}
+            >
+              <div className="flex flex-row">
+                <div className="relative overflow-hidden w-36 sm:w-52 h-52 sm:h-64 shrink-0">
+                  <img
+                    src={speaker.image}
+                    alt={speaker.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/5" />
+                </div>
+                <div className="flex-1 p-5 sm:p-7 flex flex-col justify-center relative">
+                  <div className="absolute top-4 right-4 h-16 w-16 rounded-full bg-primary/5 blur-2xl" />
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground leading-tight">
+                    {speaker.name}
+                  </h3>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="h-1 w-8 rounded-full bg-primary" />
+                  </div>
+                  <p className="mt-3 text-sm text-foreground/60 leading-relaxed line-clamp-3">
+                    {speaker.designation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-6 mt-10">
+        <button
+          onClick={prevSlide}
+          className="group h-12 w-12 rounded-full border border-foreground/15 bg-background shadow-sm flex items-center justify-center transition-all duration-300 hover:bg-foreground hover:text-background hover:shadow-lg hover:scale-105"
+          aria-label="Previous speakers"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="flex gap-2.5">
+          {Array.from({ length: totalSlides }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goToSlide(i)}
+              className={`h-2.5 rounded-full transition-all duration-400 ${
+                i === current
+                  ? "w-10 bg-primary shadow-[0_0_12px_rgba(var(--primary),0.4)]"
+                  : "w-2.5 bg-foreground/15 hover:bg-foreground/30"
+              }`}
+            />
+          ))}
+        </div>
+        <button
+          onClick={nextSlide}
+          className="group h-12 w-12 rounded-full border border-foreground/15 bg-background shadow-sm flex items-center justify-center transition-all duration-300 hover:bg-foreground hover:text-background hover:shadow-lg hover:scale-105"
+          aria-label="Next speakers"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const Hero = () => {
   const [active, setActive] = useState(0);
@@ -270,8 +390,8 @@ export const Hero = () => {
           </div>
 
           <div className="grid gap-3">
-            <Link
-              to="/speakers"
+            <a
+              href="#speakers"
               className="group relative overflow-hidden rounded-2xl border border-violet-300/40 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
             >
               <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_36%)]" />
@@ -289,7 +409,7 @@ export const Hero = () => {
                 </span>
                 <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
-            </Link>
+            </a>
 
             <a
               href="#events"
@@ -505,12 +625,6 @@ export const Hero = () => {
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </a>
-            <Link
-              to="/speakers"
-              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-background/60 px-5 py-3 text-sm font-medium backdrop-blur transition hover:bg-foreground/5"
-            >
-              <Users className="h-4 w-4" /> View speakers
-            </Link>
             <a
               href="/exhibitor/register"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-background/60 px-5 py-3 text-sm font-medium backdrop-blur transition hover:bg-foreground/5"
@@ -636,8 +750,8 @@ export const Hero = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <Link
-                to="/speakers"
+              <a
+                href="#speakers"
                 className="group relative overflow-hidden rounded-2xl border border-violet-300/40 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 px-4 py-4 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 glow-cta"
               >
                 <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.32),transparent_36%)]" />
@@ -655,7 +769,7 @@ export const Hero = () => {
                   </span>
                   <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </span>
-              </Link>
+              </a>
 
               <a
                 href="#events"
@@ -931,6 +1045,9 @@ export const Hero = () => {
           </div>
         </div>
       </div>
+
+      {/* Speakers Slider */}
+      <SpeakersSlider />
     </section>
   );
 };

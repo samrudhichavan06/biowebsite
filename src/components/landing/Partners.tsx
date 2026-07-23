@@ -23,7 +23,19 @@ export const Partners = () => (
           Organisers · Knowledge & association partners
         </span>
       </div>
-      <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-foreground/10 sm:grid-cols-3 lg:grid-cols-6">
+
+      {/* Desktop: Big image */}
+      <div className="hidden lg:block mt-8">
+        <img
+          src="/partners/all-partners-desktop.png"
+          alt="All Partners"
+          className="w-full h-auto object-contain rounded-2xl"
+          loading="lazy"
+        />
+      </div>
+
+      {/* Mobile/Tablet: Individual logos */}
+      <div className="lg:hidden mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-foreground/10 sm:grid-cols-3">
         {partners.map((p) => (
           <div key={p.name} className="grid h-28 place-items-center bg-background p-5 text-center">
             {p.logo ? (

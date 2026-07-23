@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const links = [
   { label: "Events", href: "#events" },
   { label: "About", href: "#about" },
-  { label: "Speakers", href: "/speakers" },
+  { label: "Speakers", href: "#speakers" },
   { label: "Venue", href: "#venue" },
   { label: "Partners", href: "#partners" },
 ];

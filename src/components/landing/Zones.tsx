@@ -41,9 +41,14 @@ export function Zones() {
   return (
     <section className="px-4 py-16 bg-secondary/30 lg:py-18">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-10 text-center lg:mb-12">
-          <h2 className="mb-3 text-4xl font-bold font-display text-foreground md:text-5xl">Choose Your Path</h2>
-          <p className="mx-auto max-w-2xl text-base text-foreground/70 md:text-lg">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10 lg:mb-12">
+          <div className="max-w-3xl">
+            <span className="chip">Registration Zones</span>
+            <h2 className="mt-4 font-display text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight">
+              Choose Your <em className="text-accent not-italic">Path</em>
+            </h2>
+          </div>
+          <p className="max-w-md text-foreground/60 text-sm md:text-base leading-relaxed lg:text-right">
             Select the registration zone that matches your role and unlock tailored features, resources, and networking opportunities designed for your success.
           </p>
         </div>
